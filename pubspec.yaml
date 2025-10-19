@@ -1,0 +1,39 @@
+name: htbiz
+description: "HTBIZ - Business directory for Haiti"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Supabase
+  supabase_flutter: ^2.3.4
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # UI
+  google_fonts: ^6.1.0
+  cached_network_image: ^3.3.1
+  
+  # Images
+  image_picker: ^1.0.7
+  
+  # Utils
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Uncomment this when you add assets
+  # assets:
+  #   - assets/images/
