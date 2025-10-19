@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/business_model.dart';
 import '../models/review_model.dart';
 import '../main.dart';
+import 'dart:io';
 // import 'dart:io';
 
 class BusinessService {
@@ -129,6 +130,28 @@ class BusinessService {
       return Review.fromJson(response);
     } catch (e) {
       throw Exception('Failed to add review: $e');
+    }
+  }
+
+  // Upload business image to Supabase Storage
+  Future<String> uploadBusinessImage(File imageFile) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$userId/$timestamp.jpg';
+
+      // Upload to Supabase Storage
+      await supabase.storage
+          .from('business-images')
+          .upload(fileName, imageFile);
+
+      // Get public URL
+      final imageUrl =
+          supabase.storage.from('business-images').getPublicUrl(fileName);
+
+      return imageUrl;
+    } catch (e) {
+      throw Exception('Failed to upload image: $e');
     }
   }
 
