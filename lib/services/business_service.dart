@@ -1,9 +1,8 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/business_model.dart';
 import '../models/review_model.dart';
 import '../main.dart';
 import 'dart:io';
-// import 'dart:io';
+import 'package:path/path.dart' as path;
 
 class BusinessService {
   // Get all businesses
@@ -138,41 +137,42 @@ class BusinessService {
     try {
       final userId = supabase.auth.currentUser!.id;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = '$userId/$timestamp.jpg';
+      final fileExtension = path.extension(imageFile.path);
+      final fileName = 'businesses/$userId/$timestamp$fileExtension';
 
       // Upload to Supabase Storage
-      await supabase.storage
-          .from('business-images')
-          .upload(fileName, imageFile);
+      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
 
       // Get public URL
       final imageUrl =
-          supabase.storage.from('business-images').getPublicUrl(fileName);
+          supabase.storage.from('htbiz_images').getPublicUrl(fileName);
 
       return imageUrl;
     } catch (e) {
-      throw Exception('Failed to upload image: $e');
+      throw Exception('Failed to upload business image: $e');
     }
   }
 
-  // // Upload business image
-  // Future<String> uploadBusinessImage(String filePath, String fileName) async {
-  //   try {
-  //     final userId = supabase.auth.currentUser!.id;
-  //     final fileExt = fileName.split('.').last;
-  //     final timestamp = DateTime.now().millisecondsSinceEpoch;
-  //     final newFileName = '$userId/$timestamp.$fileExt';
+  // Upload review image to Supabase Storage
+  Future<String> uploadReviewImage(File imageFile) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(imageFile.path);
+      final fileName = 'reviews/$userId/$timestamp$fileExtension';
 
-  //     await supabase.storage
-  //         .from('business-images')
-  //         .upload(newFileName, File(filePath));
+      // Upload to Supabase Storage - simplified without FileOptions
+      await supabase.storage.from('htbiz_images').upload(
+            fileName,
+            imageFile,
+          );
 
-  //     final imageUrl =
-  //         supabase.storage.from('business-images').getPublicUrl(newFileName);
-
-  //     return imageUrl;
-  //   } catch (e) {
-  //     throw Exception('Failed to upload image: $e');
-  //   }
-  // }
+      // Get public URL
+      final imageUrl =
+          supabase.storage.from('htbiz_images').getPublicUrl(fileName);
+      return imageUrl;
+    } catch (e) {
+      throw Exception('Failed to upload review image: $e');
+    }
+  }
 }

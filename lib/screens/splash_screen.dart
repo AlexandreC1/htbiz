@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../main.dart';
+import '../services/localization_service.dart';
 import 'auth/login_screen.dart';
 import 'home/home_screen.dart';
 
@@ -59,6 +61,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final localization = Provider.of<LocalizationService>(context);
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -97,9 +101,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 30),
-                const Text(
-                  'HTBIZ',
-                  style: TextStyle(
+                Text(
+                  localization.t('app_name'),
+                  style: const TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -107,12 +111,13 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Discover Local Businesses in Haiti',
-                  style: TextStyle(
+                Text(
+                  localization.t('app_tagline'),
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

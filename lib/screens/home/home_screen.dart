@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
+import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
 import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
@@ -22,18 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   String? _selectedCategory;
 
-  final List<String> _categories = [
-    'All',
-    'Restaurant',
-    'Hotel',
-    'Shop',
-    'Service',
-    'Entertainment',
-    'Healthcare',
-    'Education',
-    'Other',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -52,8 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
+        final localization =
+            Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading businesses: $e')),
+          SnackBar(
+              content:
+                  Text('${localization.t('error_loading_businesses')}: $e')),
         );
       }
     }
@@ -65,8 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final matchesSearch =
             business.name.toLowerCase().contains(_searchQuery.toLowerCase());
         final matchesCategory = _selectedCategory == null ||
-            _selectedCategory == 'All' ||
-            business.category == _selectedCategory;
+            _selectedCategory == 'all' ||
+            business.category.toLowerCase() == _selectedCategory!.toLowerCase();
         return matchesSearch && matchesCategory;
       }).toList();
     });
@@ -76,10 +70,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
     final isGuest = user?.isAnonymous ?? true;
+    final localization = Provider.of<LocalizationService>(context);
+
+    final List<Map<String, String>> categories = [
+      {'key': 'all', 'label': localization.t('all')},
+      {'key': 'restaurant', 'label': localization.t('restaurant')},
+      {'key': 'hotel', 'label': localization.t('hotel')},
+      {'key': 'shop', 'label': localization.t('shop')},
+      {'key': 'service', 'label': localization.t('service')},
+      {'key': 'entertainment', 'label': localization.t('entertainment')},
+      {'key': 'healthcare', 'label': localization.t('healthcare')},
+      {'key': 'education', 'label': localization.t('education')},
+      {'key': 'other', 'label': localization.t('other')},
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('HTBIZ'),
+        title: Text(localization.t('app_name')),
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
@@ -110,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search businesses...',
+                hintText: localization.t('search_businesses'),
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -129,19 +136,21 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _categories.length,
+              itemCount: categories.length,
               itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = _selectedCategory == category ||
-                    (category == 'All' && _selectedCategory == null);
+                final category = categories[index];
+                final categoryKey = category['key']!;
+                final isSelected = _selectedCategory == categoryKey ||
+                    (categoryKey == 'all' && _selectedCategory == null);
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
-                    label: Text(category),
+                    label: Text(category['label']!),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
-                        _selectedCategory = category == 'All' ? null : category;
+                        _selectedCategory =
+                            categoryKey == 'all' ? null : categoryKey;
                       });
                       _filterBusinesses();
                     },
@@ -169,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No businesses found',
+                              localization.t('no_businesses_found'),
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey[600],
@@ -177,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Be the first to add one!',
+                              localization.t('be_first_to_add'),
                               style: TextStyle(
                                 color: Colors.grey[500],
                               ),
@@ -223,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ).then((_) => _loadBusinesses());
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Business'),
+              label: Text(localization.t('add_business')),
             ),
     );
   }
@@ -344,9 +353,13 @@ class _BusinessCard extends StatelessWidget {
                         business.rating.toStringAsFixed(1),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text(
-                        ' (${business.totalReviews} reviews)',
-                        style: const TextStyle(color: Colors.grey),
+                      Consumer<LocalizationService>(
+                        builder: (context, localization, child) {
+                          return Text(
+                            ' (${business.totalReviews} ${localization.t('reviews').toLowerCase()})',
+                            style: const TextStyle(color: Colors.grey),
+                          );
+                        },
                       ),
                     ],
                   ),

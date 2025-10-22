@@ -7,30 +7,35 @@ import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 
-class AddBusinessScreen extends StatefulWidget {
-  const AddBusinessScreen({super.key});
+class EditBusinessScreen extends StatefulWidget {
+  final Business business;
+
+  const EditBusinessScreen({
+    super.key,
+    required this.business,
+  });
 
   @override
-  State<AddBusinessScreen> createState() => _AddBusinessScreenState();
+  State<EditBusinessScreen> createState() => _EditBusinessScreenState();
 }
 
-class _AddBusinessScreenState extends State<AddBusinessScreen> {
+class _EditBusinessScreenState extends State<EditBusinessScreen> {
   final _formKey = GlobalKey<FormState>();
   final _businessService = BusinessService();
   final _imagePicker = ImagePicker();
 
   // Controllers
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _phoneController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _addressController;
+  late TextEditingController _phoneController;
 
-  // State - USE ENGLISH KEYS INTERNALLY
-  String _selectedCategoryKey = 'restaurant'; // CHANGED: Use lowercase key
+  // State
+  String _selectedCategoryKey = 'restaurant';
   File? _selectedImage;
   bool _isLoading = false;
+  String? _currentImageUrl;
 
-  // Category mapping - keys stay the same, labels translate
   final Map<String, String> _categoryKeys = {
     'restaurant': 'restaurant',
     'hotel': 'hotel',
@@ -41,6 +46,32 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
     'education': 'education',
     'other': 'other',
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.business.name);
+    _descriptionController =
+        TextEditingController(text: widget.business.description);
+    _addressController = TextEditingController(text: widget.business.address);
+    _phoneController = TextEditingController(text: widget.business.phone ?? '');
+    _currentImageUrl = widget.business.imageUrl;
+
+    // Find category key from display name
+    _selectedCategoryKey = _findCategoryKey(widget.business.category);
+  }
+
+  String _findCategoryKey(String displayCategory) {
+    // Try to match the display category to a key
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+    for (String key in _categoryKeys.keys) {
+      if (localization.t(key).toLowerCase() == displayCategory.toLowerCase()) {
+        return key;
+      }
+    }
+    return 'other'; // fallback
+  }
 
   @override
   void dispose() {
@@ -63,6 +94,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
+          _currentImageUrl = null; // Clear current image when new one selected
         });
       }
     } catch (e) {
@@ -99,13 +131,16 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                 _pickImage(ImageSource.camera);
               },
             ),
-            if (_selectedImage != null)
+            if (_selectedImage != null || _currentImageUrl != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: Text(localization.t('remove_photo')),
                 onTap: () {
                   Navigator.pop(context);
-                  setState(() => _selectedImage = null);
+                  setState(() {
+                    _selectedImage = null;
+                    _currentImageUrl = null;
+                  });
                 },
               ),
           ],
@@ -114,54 +149,48 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
     );
   }
 
-  Future<void> _submitForm() async {
+  Future<void> _updateBusiness() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      String? imageUrl;
+      String? imageUrl = _currentImageUrl;
 
-      // Upload image if selected
+      // Upload new image if selected
       if (_selectedImage != null) {
         imageUrl = await _businessService.uploadBusinessImage(_selectedImage!);
       }
 
-      // Get translated category name for storage
+      // Get translated category name
       final localization =
           Provider.of<LocalizationService>(context, listen: false);
       final categoryDisplay = localization.t(_selectedCategoryKey);
 
-      // Create business object
-      final business = Business(
-        id: '',
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        category: categoryDisplay, // Store translated name
-        address: _addressController.text.trim(),
-        phone: _phoneController.text.trim().isNotEmpty
+      // Update business
+      final updates = {
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'category': categoryDisplay,
+        'address': _addressController.text.trim(),
+        'phone': _phoneController.text.trim().isNotEmpty
             ? _phoneController.text.trim()
             : null,
-        imageUrl: imageUrl,
-        rating: 0.0,
-        totalReviews: 0,
-        ownerId: supabase.auth.currentUser!.id,
-        createdAt: DateTime.now(),
-      );
+        'image_url': imageUrl,
+      };
 
-      // Save to Supabase
-      await _businessService.createBusiness(business);
+      await _businessService.updateBusiness(widget.business.id, updates);
 
       if (mounted) {
         final localization =
             Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(localization.t('business_added_success')),
+            content: Text(localization.t('business_updated_success')),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, true); // Return true to indicate update
       }
     } catch (e) {
       if (mounted) {
@@ -187,7 +216,8 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localization.t('add_business')),
+        title: Text(localization.t('edit_business')),
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -198,6 +228,17 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Current business name as header
+                    Text(
+                      'Editing: ${widget.business.name}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     // Image picker
                     GestureDetector(
                       onTap: _showImageSourceDialog,
@@ -217,32 +258,20 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                                   width: double.infinity,
                                 ),
                               )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate_outlined,
-                                    size: 60,
-                                    color: Colors.grey[400],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    localization.t('add_business_photo'),
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 16,
+                            : _currentImageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      _currentImageUrl!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return _buildPlaceholder(localization);
+                                      },
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    localization.t('tap_to_select'),
-                                    style: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                  )
+                                : _buildPlaceholder(localization),
                       ),
                     ),
 
@@ -254,6 +283,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                       decoration: InputDecoration(
                         labelText: '${localization.t('business_name')} *',
                         prefixIcon: const Icon(Icons.business),
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -265,12 +295,13 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Category Dropdown - FIXED VERSION
+                    // Category Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedCategoryKey,
                       decoration: InputDecoration(
                         labelText: '${localization.t('category')} *',
                         prefixIcon: const Icon(Icons.category),
+                        border: const OutlineInputBorder(),
                       ),
                       items: _categoryKeys.keys.map((key) {
                         return DropdownMenuItem(
@@ -291,6 +322,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                       decoration: InputDecoration(
                         labelText: '${localization.t('description')} *',
                         prefixIcon: const Icon(Icons.description),
+                        border: const OutlineInputBorder(),
                       ),
                       maxLines: 3,
                       validator: (value) {
@@ -309,6 +341,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                       decoration: InputDecoration(
                         labelText: '${localization.t('address')} *',
                         prefixIcon: const Icon(Icons.location_on),
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -327,19 +360,23 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                         labelText: localization.t('phone_optional'),
                         prefixIcon: const Icon(Icons.phone),
                         hintText: '+509 XXXX XXXX',
+                        border: const OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.phone,
                     ),
 
                     const SizedBox(height: 32),
 
-                    // Submit Button
+                    // Update Button
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _submitForm,
+                      onPressed: _isLoading ? null : _updateBusiness,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Colors.teal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: _isLoading
                           ? const SizedBox(
@@ -352,8 +389,9 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                               ),
                             )
                           : Text(
-                              localization.t('add_business'),
-                              style: const TextStyle(fontSize: 16),
+                              'Update Business',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                     ),
 
@@ -363,12 +401,50 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                     OutlinedButton(
                       onPressed:
                           _isLoading ? null : () => Navigator.pop(context),
-                      child: Text(localization.t('cancel')),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        localization.t('cancel'),
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildPlaceholder(LocalizationService localization) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 60,
+          color: Colors.grey[400],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          localization.t('add_business_photo'),
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          localization.t('tap_to_select'),
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 }

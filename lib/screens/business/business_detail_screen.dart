@@ -1,9 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import '../../main.dart';
 import '../../models/business_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
+import '../../services/localization_service.dart';
+import 'edit_business_screen.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
@@ -46,21 +52,31 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
+        final localization =
+            Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading business: $e')),
+          SnackBar(
+              content: Text('${localization.t('error_loading_business')}: $e')),
         );
       }
     }
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri url = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    // Clean the phone number - remove spaces and special characters except +
+    final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri url = Uri(scheme: 'tel', path: cleanNumber);
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      } else {
+        throw 'Could not launch dialer';
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch phone dialer')),
+          SnackBar(content: Text('Could not launch phone dialer: $e')),
         );
       }
     }
@@ -84,12 +100,29 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
   }
 
+  void _showEditBusinessDialog() {
+    // Navigate to the actual edit screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditBusinessScreen(business: _business!),
+      ),
+    ).then((updated) {
+      if (updated == true) {
+        _loadBusinessDetails(); // Refresh the business details
+      }
+    });
+  }
+
   void _showAddReviewDialog() {
     final user = supabase.auth.currentUser;
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
     if (user == null || user.isAnonymous) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in to add a review'),
+        SnackBar(
+          content: Text(localization.t('please_sign_in_to_review')),
         ),
       );
       return;
@@ -97,60 +130,185 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     int selectedRating = 5;
     final commentController = TextEditingController();
+    File? selectedReviewImage;
+    bool isUploadingImage = false;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Review'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Rating'),
-                const SizedBox(height: 8),
-                Row(
-                  children: List.generate(5, (index) {
-                    return IconButton(
-                      onPressed: () {
-                        setDialogState(() {
-                          selectedRating = index + 1;
-                        });
-                      },
-                      icon: Icon(
-                        index < selectedRating ? Icons.star : Icons.star_border,
-                        color: Colors.amber,
-                        size: 32,
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: commentController,
-                  decoration: const InputDecoration(
-                    labelText: 'Comment (Optional)',
-                    border: OutlineInputBorder(),
+          title: Text(localization.t('add_review')),
+          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0),
+          content: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Rating Section
+                  Text(
+                    localization.t('rating'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  maxLines: 3,
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        onPressed: () {
+                          setDialogState(() {
+                            selectedRating = index + 1;
+                          });
+                        },
+                        icon: Icon(
+                          index < selectedRating
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                          size: 32,
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Comment Section
+                  TextField(
+                    controller: commentController,
+                    decoration: InputDecoration(
+                      labelText: localization.t('comment_optional'),
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.all(12),
+                    ),
+                    maxLines: 3,
+                    maxLength: 500,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Photo Section
+                  Text(
+                    'Add Photo (Optional)',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Photo picker/display
+                  Container(
+                    width: double.infinity,
+                    height: selectedReviewImage != null ? 150 : 100,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[50],
+                    ),
+                    child: selectedReviewImage != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  selectedReviewImage!,
+                                  width: double.infinity,
+                                  height: 150,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setDialogState(() {
+                                      selectedReviewImage = null;
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : InkWell(
+                            onTap: () => _showReviewImagePicker(setDialogState,
+                                (File? image) {
+                              setDialogState(() {
+                                selectedReviewImage = image;
+                              });
+                            }),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 40,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Tap to add photo',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localization.t('cancel')),
             ),
             ElevatedButton(
-              onPressed: _isSubmittingReview
+              onPressed: (_isSubmittingReview || isUploadingImage)
                   ? null
                   : () async {
+                      setDialogState(() => isUploadingImage = true);
                       setState(() => _isSubmittingReview = true);
                       Navigator.pop(context);
 
                       try {
+                        String? reviewImageUrl;
+
+                        // Upload review image if selected
+                        if (selectedReviewImage != null) {
+                          print('🔄 Uploading image...');
+                          reviewImageUrl = await _businessService
+                              .uploadReviewImage(selectedReviewImage!);
+                          print('✅ Image uploaded: $reviewImageUrl');
+                        }
+
+                        print('🔄 Creating review...');
                         final review = Review(
                           id: '',
                           businessId: widget.businessId,
@@ -160,12 +318,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               ? commentController.text.trim()
                               : null,
                           createdAt: DateTime.now(),
-                          userEmail: user.email,
+                          userEmail: user.email ?? 'Anonymous User',
+                          imageUrl: reviewImageUrl,
                         );
 
+                        print('🔄 Submitting review...');
                         await _businessService.addReview(review);
+                        print('✅ Review submitted successfully');
 
-                        // Recalculate average rating
                         final allReviews = await _businessService
                             .getBusinessReviews(widget.businessId);
                         final avgRating = allReviews.isEmpty
@@ -175,7 +335,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     .reduce((a, b) => a + b) /
                                 allReviews.length;
 
-                        // Update business rating
                         await _businessService.updateBusiness(
                           widget.businessId,
                           {
@@ -184,27 +343,101 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           },
                         );
 
+                        print('🔄 Refreshing business details...');
                         await _loadBusinessDetails();
+                        print('✅ Business details refreshed');
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Review added successfully!'),
+                            SnackBar(
+                              content:
+                                  Text(localization.t('review_added_success')),
                               backgroundColor: Colors.green,
                             ),
                           );
                         }
                       } catch (e) {
+                        print('❌ Error: $e');
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
+                            SnackBar(
+                              content: Text('${localization.t('error')}: $e'),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       } finally {
                         setState(() => _isSubmittingReview = false);
                       }
                     },
-              child: const Text('Submit'),
+              child: (_isSubmittingReview || isUploadingImage)
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(localization.t('submit')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReviewImagePicker(
+      StateSetter setDialogState, Function(File?) onImageSelected) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                try {
+                  final XFile? image = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    imageQuality: 85,
+                  );
+                  if (image != null) {
+                    onImageSelected(File(image.path));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error picking image: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                try {
+                  final XFile? image = await ImagePicker().pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    imageQuality: 85,
+                  );
+                  if (image != null) {
+                    onImageSelected(File(image.path));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error taking photo: $e')),
+                    );
+                  }
+                }
+              },
             ),
           ],
         ),
@@ -213,17 +446,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _showDeleteConfirmation() {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Business'),
-        content: const Text(
-          'Are you sure you want to delete this business? This action cannot be undone.',
-        ),
+        title: Text(localization.t('delete_business')),
+        content: Text(localization.t('delete_confirmation')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(localization.t('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -233,8 +467,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 if (mounted) {
                   Navigator.pop(context, true);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Business deleted successfully'),
+                    SnackBar(
+                      content: Text(localization.t('business_deleted_success')),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -242,7 +476,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text('${localization.t('error')}: $e')),
                   );
                 }
               }
@@ -251,7 +485,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(localization.t('delete')),
           ),
         ],
       ),
@@ -262,6 +496,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
     final isOwner = user != null && _business?.ownerId == user.id;
+    final localization = Provider.of<LocalizationService>(context);
 
     return Scaffold(
       body: _isLoading
@@ -278,19 +513,31 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         if (isOwner)
                           PopupMenuButton(
                             itemBuilder: (context) => [
-                              const PopupMenuItem(
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                    const SizedBox(width: 8),
+                                    Text(localization.t('edit_business')),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete Business'),
+                                    const Icon(Icons.delete, color: Colors.red),
+                                    const SizedBox(width: 8),
+                                    Text(localization.t('delete_business')),
                                   ],
                                 ),
                               ),
                             ],
                             onSelected: (value) {
-                              if (value == 'delete') {
+                              if (value == 'edit') {
+                                _showEditBusinessDialog();
+                              } else if (value == 'delete') {
                                 _showDeleteConfirmation();
                               }
                             },
@@ -377,7 +624,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   ),
                                 ),
                                 Text(
-                                  ' (${_business!.totalReviews} reviews)',
+                                  ' (${_business!.totalReviews} ${localization.t('reviews').toLowerCase()})',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey[600],
@@ -389,9 +636,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             const SizedBox(height: 24),
 
                             // Description
-                            const Text(
-                              'About',
-                              style: TextStyle(
+                            Text(
+                              localization.t('about'),
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -409,9 +656,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             const SizedBox(height: 24),
 
                             // Contact Information
-                            const Text(
-                              'Contact',
-                              style: TextStyle(
+                            Text(
+                              localization.t('contact'),
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -470,7 +717,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             ElevatedButton.icon(
                               onPressed: _showAddReviewDialog,
                               icon: const Icon(Icons.rate_review),
-                              label: const Text('Write a Review'),
+                              label: Text(localization.t('write_review')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal,
                                 foregroundColor: Colors.white,
@@ -483,9 +730,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             // Reviews Section
                             Row(
                               children: [
-                                const Text(
-                                  'Reviews',
-                                  style: TextStyle(
+                                Text(
+                                  localization.t('reviews'),
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -517,7 +764,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'No reviews yet',
+                                        localization.t('no_reviews_yet'),
                                         style: TextStyle(
                                           fontSize: 16,
                                           color: Colors.grey[600],
@@ -525,7 +772,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Be the first to review!',
+                                        localization.t('be_first_to_review'),
                                         style: TextStyle(
                                           color: Colors.grey[500],
                                         ),
@@ -561,6 +808,8 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localization = Provider.of<LocalizationService>(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -568,6 +817,7 @@ class _ReviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // User info and rating
             Row(
               children: [
                 CircleAvatar(
@@ -605,7 +855,7 @@ class _ReviewCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _formatDate(review.createdAt),
+                            _formatDate(review.createdAt, localization),
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,
@@ -618,11 +868,57 @@ class _ReviewCard extends StatelessWidget {
                 ),
               ],
             ),
+
+            // Review comment
             if (review.comment != null && review.comment!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
                 review.comment!,
                 style: const TextStyle(fontSize: 14, height: 1.5),
+              ),
+            ],
+
+            // Review image
+            if (review.imageUrl != null && review.imageUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => _showFullImageDialog(context, review.imageUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(
+                      maxHeight: 200,
+                    ),
+                    child: Image.network(
+                      review.imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ),
             ],
           ],
@@ -631,22 +927,74 @@ class _ReviewCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  void _showFullImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[800],
+                      child: const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Colors.white,
+                          size: 60,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date, LocalizationService localization) {
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
-      return 'Today';
+      return localization.t('today');
     } else if (difference.inDays == 1) {
-      return 'Yesterday';
+      return localization.t('yesterday');
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays} ${localization.t('days_ago')}';
     } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()} weeks ago';
+      return '${(difference.inDays / 7).floor()} ${localization.t('weeks_ago')}';
     } else if (difference.inDays < 365) {
-      return '${(difference.inDays / 30).floor()} months ago';
+      return '${(difference.inDays / 30).floor()} ${localization.t('months_ago')}';
     } else {
-      return '${(difference.inDays / 365).floor()} years ago';
+      return '${(difference.inDays / 365).floor()} ${localization.t('years_ago')}';
     }
   }
 }

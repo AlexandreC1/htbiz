@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'config/supabase_config.dart';
 import 'screens/splash_screen.dart';
+import 'services/localization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
   );
 
-  runApp(const HTBizApp());
+  // Initialize Localization
+  await LocalizationService().init();
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocalizationService(),
+      child: const HTBizApp(),
+    ),
+  );
 }
 
 final supabase = Supabase.instance.client;
