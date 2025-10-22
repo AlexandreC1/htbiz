@@ -138,11 +138,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(localization.t('add_review')),
-          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0),
+          contentPadding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0),
           content: Container(
             width: double.maxFinite,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -153,15 +153,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   Text(
                     localization.t('rating'),
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (index) {
                       return IconButton(
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
                         onPressed: () {
                           setDialogState(() {
                             selectedRating = index + 1;
@@ -172,13 +177,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               ? Icons.star
                               : Icons.star_border,
                           color: Colors.amber,
-                          size: 32,
+                          size: 28,
                         ),
                       );
                     }),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
 
                   // Comment Section
                   TextField(
@@ -186,28 +191,29 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     decoration: InputDecoration(
                       labelText: localization.t('comment_optional'),
                       border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.all(12),
+                      contentPadding: const EdgeInsets.all(8),
+                      isDense: true,
                     ),
-                    maxLines: 3,
-                    maxLength: 500,
+                    maxLines: 2,
+                    maxLength: 300,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
 
                   // Photo Section
                   Text(
                     'Add Photo (Optional)',
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
 
                   // Photo picker/display
                   Container(
                     width: double.infinity,
-                    height: selectedReviewImage != null ? 150 : 100,
+                    height: selectedReviewImage != null ? 120 : 80,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8),
@@ -221,13 +227,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 child: Image.file(
                                   selectedReviewImage!,
                                   width: double.infinity,
-                                  height: 150,
+                                  height: 120,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                               Positioned(
-                                top: 8,
-                                right: 8,
+                                top: 4,
+                                right: 4,
                                 child: GestureDetector(
                                   onTap: () {
                                     setDialogState(() {
@@ -243,7 +249,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     child: const Icon(
                                       Icons.close,
                                       color: Colors.white,
-                                      size: 16,
+                                      size: 14,
                                     ),
                                   ),
                                 ),
@@ -262,15 +268,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               children: [
                                 Icon(
                                   Icons.add_photo_alternate_outlined,
-                                  size: 40,
+                                  size: 32,
                                   color: Colors.grey[400],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Tap to add photo',
                                   style: TextStyle(
                                     color: Colors.grey[600],
-                                    fontSize: 14,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
@@ -278,12 +284,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                 ],
               ),
             ),
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
+          actionsPadding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 16.0),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -372,8 +378,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     },
               child: (_isSubmittingReview || isUploadingImage)
                   ? const SizedBox(
-                      height: 20,
-                      width: 20,
+                      height: 18,
+                      width: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(localization.t('submit')),

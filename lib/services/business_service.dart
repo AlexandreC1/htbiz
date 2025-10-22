@@ -93,9 +93,13 @@ class BusinessService {
     }
   }
 
-  // Delete business
+  // Delete business (with proper cleanup)
   Future<void> deleteBusiness(String id) async {
     try {
+      // First, delete all reviews associated with this business
+      await supabase.from('reviews').delete().eq('business_id', id);
+
+      // Then delete the business itself
       await supabase.from('businesses').delete().eq('id', id);
     } catch (e) {
       throw Exception('Failed to delete business: $e');
@@ -161,7 +165,7 @@ class BusinessService {
       final fileExtension = path.extension(imageFile.path);
       final fileName = 'reviews/$userId/$timestamp$fileExtension';
 
-      // Upload to Supabase Storage - simplified without FileOptions
+      // Upload to Supabase Storage
       await supabase.storage.from('htbiz_images').upload(
             fileName,
             imageFile,
