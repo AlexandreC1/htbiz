@@ -9,6 +9,7 @@ class LocalizationService extends ChangeNotifier {
   String _currentLanguage = 'en'; // Default: English
 
   String get currentLanguage => _currentLanguage;
+  Locale get currentLocale => Locale(_currentLanguage);
 
   // Initialize and load saved language
   Future<void> init() async {
@@ -23,6 +24,23 @@ class LocalizationService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', languageCode);
     notifyListeners();
+  }
+
+  // Set locale (for consistency with Locale API)
+  Future<void> setLocale(Locale locale) async {
+    await setLanguage(locale.languageCode);
+  }
+
+  // Check if onboarding has been completed
+  Future<bool> hasCompletedOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('onboarding_completed') ?? false;
+  }
+
+  // Mark onboarding as completed
+  Future<void> setOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
   }
 
   // Get translated string
@@ -122,6 +140,27 @@ class LocalizationService extends ChangeNotifier {
       'english': 'English',
       'french': 'Français',
       'haitian_creole': 'Kreyòl Ayisyen',
+      'choose_language': 'Choose Your Language',
+      'select_preferred_language': 'Select your preferred language to continue',
+
+      // Navigation
+      'explore': 'Explore',
+      'my_business': 'My Business',
+      'favorites': 'Favorites',
+      'my_reviews': 'My Reviews',
+
+      // Business Owner
+      'sign_in_to_manage': 'Sign in to manage your businesses',
+      'sign_in_to_manage_desc':
+          'Create an account or sign in to add and manage your business listings',
+      'no_businesses_yet': 'No businesses yet',
+      'start_by_adding': 'Start by adding your first business',
+
+      // Customer/Favorites
+      'sign_in_for_favorites': 'Sign in to save your favorites',
+      'sign_in_for_favorites_desc':
+          'Create an account to save your favorite businesses and write reviews',
+      'explore_and_favorite': 'Explore businesses and tap the heart icon to save',
 
       // Messages
       'success': 'Success!',
@@ -230,6 +269,28 @@ class LocalizationService extends ChangeNotifier {
       'english': 'English',
       'french': 'Français',
       'haitian_creole': 'Kreyòl Ayisyen',
+      'choose_language': 'Choisissez votre langue',
+      'select_preferred_language': 'Sélectionnez votre langue préférée pour continuer',
+
+      // Navigation
+      'explore': 'Explorer',
+      'my_business': 'Mon Entreprise',
+      'favorites': 'Favoris',
+      'my_reviews': 'Mes Avis',
+
+      // Business Owner
+      'sign_in_to_manage': 'Connectez-vous pour gérer vos entreprises',
+      'sign_in_to_manage_desc':
+          'Créez un compte ou connectez-vous pour ajouter et gérer vos annonces',
+      'no_businesses_yet': 'Pas encore d\'entreprises',
+      'start_by_adding': 'Commencez par ajouter votre première entreprise',
+
+      // Customer/Favorites
+      'sign_in_for_favorites': 'Connectez-vous pour sauvegarder vos favoris',
+      'sign_in_for_favorites_desc':
+          'Créez un compte pour sauvegarder vos entreprises favorites et écrire des avis',
+      'explore_and_favorite':
+          'Explorez les entreprises et appuyez sur le cœur pour sauvegarder',
 
       // Messages
       'success': 'Succès!',
@@ -336,6 +397,27 @@ class LocalizationService extends ChangeNotifier {
       'english': 'English',
       'french': 'Français',
       'haitian_creole': 'Kreyòl Ayisyen',
+      'choose_language': 'Chwazi Lang Ou',
+      'select_preferred_language': 'Chwazi lang ou prefere pou kontinye',
+
+      // Navigation
+      'explore': 'Eksplore',
+      'my_business': 'Biznis Mwen',
+      'favorites': 'Favori',
+      'my_reviews': 'Reviw Mwen',
+
+      // Business Owner
+      'sign_in_to_manage': 'Konekte pou jere biznis ou yo',
+      'sign_in_to_manage_desc':
+          'Kreye yon kont oswa konekte pou ajoute ak jere biznis ou yo',
+      'no_businesses_yet': 'Poko gen biznis',
+      'start_by_adding': 'Kòmanse pa ajoute premye biznis ou',
+
+      // Customer/Favorites
+      'sign_in_for_favorites': 'Konekte pou kenbe favori ou yo',
+      'sign_in_for_favorites_desc':
+          'Kreye yon kont pou kenbe biznis favori ou yo ak ekri reviw',
+      'explore_and_favorite': 'Eksplore biznis yo epi peze kè a pou kenbe',
 
       // Messages
       'success': 'Siksè!',

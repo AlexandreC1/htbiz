@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../services/localization_service.dart';
 import 'auth/login_screen.dart';
-import 'home/home_screen.dart';
+import 'navigation/main_navigation.dart';
+import 'onboarding/language_selection_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,11 +47,25 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    // Check if onboarding has been completed
+    final localization = Provider.of<LocalizationService>(context, listen: false);
+    final hasCompletedOnboarding = await localization.hasCompletedOnboarding();
+
+    if (!hasCompletedOnboarding) {
+      // First time user - show language selection
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const LanguageSelectionScreen(isOnboarding: true),
+        ),
+      );
+      return;
+    }
+
     final session = supabase.auth.currentSession;
 
     if (session != null) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
       );
     } else {
       Navigator.of(context).pushReplacement(
@@ -70,9 +85,11 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.teal.shade400,
-              Colors.teal.shade700,
+              const Color(0xFF00BCD4), // Cyan
+              const Color(0xFF7C4DFF), // Purple
+              const Color(0xFF3F51B5), // Indigo
             ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: Center(
@@ -94,10 +111,10 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.business,
                     size: 80,
-                    color: Colors.teal,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 30),
