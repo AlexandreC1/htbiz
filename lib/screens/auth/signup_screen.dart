@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../services/localization_service.dart';
+import 'onboarding_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -39,16 +40,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       if (mounted) {
-        final localization =
-            Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localization.t('account_created')),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 5),
-          ),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          (route) => false,
         );
-        Navigator.of(context).pop();
       }
     } catch (error) {
       if (mounted) {

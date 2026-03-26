@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   flutter_localizations:  
     sdk: flutter 
+  app_links: ^6.3.2
 
   # Supabase
   supabase_flutter: ^2.3.4
@@ -27,8 +28,9 @@ dependencies:
   
   # Utils
   intl: ^0.20.2
-  url_launcher: ^6.2.5  
-  shared_preferences: ^2.2.2  
+  url_launcher: ^6.2.5
+  shared_preferences: ^2.2.2
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../main.dart';
-import '../../services/localization_service.dart';
 import '../home/home_screen.dart';
 import 'signup_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,9 +43,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (error) {
       if (mounted) {
+        String errorMessage = 'An error occurred';
+
+        if (error.toString().contains('invalid_credentials')) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.toString().contains('Email not confirmed')) {
+          errorMessage = 'Please verify your email first';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString()),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -57,34 +64,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInAsGuest() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await supabase.auth.signInAnonymously();
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final localization = Provider.of<LocalizationService>(context);
-
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -96,52 +84,66 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
+                  // Logo
+                  const Icon(
                     Icons.business,
                     size: 80,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Color(0xFF006064),
                   ),
                   const SizedBox(height: 20),
+
+                  // Title
                   Text(
-                    localization.t('welcome'),
+                    'Bienvenue à HTBIZ',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: const Color(0xFF006064),
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    localization.t('sign_in_to_continue'),
+                    'Connectez-vous pour continuer',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.grey[600],
                         ),
                   ),
                   const SizedBox(height: 40),
+
+                  // Email field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: localization.t('email'),
+                      labelText: 'Email',
                       prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return localization.t('please_enter_email');
+                        return 'Please enter your email';
                       }
                       if (!value.contains('@')) {
-                        return localization.t('please_enter_valid_email');
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // Password field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: localization.t('password'),
+                      labelText: 'Mot de passe',
                       prefixIcon: const Icon(Icons.lock_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -155,49 +157,83 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return localization.t('please_enter_password');
-                      }
-                      if (value.length < 6) {
-                        return localization.t('password_min_length');
+                        return 'Please enter your password';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 8),
+
+                  // Forgot Password Link
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('Mot de passe oublié?'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Login Button
                   if (_isLoading)
                     const Center(child: CircularProgressIndicator())
-                  else ...[
+                  else
                     ElevatedButton(
                       onPressed: _signIn,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: const Color(0xFF006064),
                         foregroundColor: Colors.white,
-                      ),
-                      child: Text(localization.t('sign_in')),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: _signInAsGuest,
-                      child: Text(localization.t('continue_as_guest')),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(localization.t('dont_have_account')),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SignUpScreen(),
-                              ),
-                            );
-                          },
-                          child: Text(localization.t('sign_up')),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
+                      ),
+                      child: const Text(
+                        'Se connecter',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ],
+                  const SizedBox(height: 16),
+
+                  // Continue as Guest
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : _signInAsGuest,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text("Continuer en tant qu'invité"),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Vous n'avez pas de compte?"),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const SignUpScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text("S'inscrire"),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

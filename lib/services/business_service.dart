@@ -1,5 +1,7 @@
 import '../models/business_model.dart';
+import '../models/business_image_model.dart';
 import '../models/review_model.dart';
+import '../models/user_profile.dart';
 import '../main.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
@@ -165,18 +167,182 @@ class BusinessService {
       final fileExtension = path.extension(imageFile.path);
       final fileName = 'reviews/$userId/$timestamp$fileExtension';
 
-      // Upload to Supabase Storage
-      await supabase.storage.from('htbiz_images').upload(
-            fileName,
-            imageFile,
-          );
-
-      // Get public URL
-      final imageUrl =
-          supabase.storage.from('htbiz_images').getPublicUrl(fileName);
-      return imageUrl;
+      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
+      return supabase.storage.from('htbiz_images').getPublicUrl(fileName);
     } catch (e) {
       throw Exception('Failed to upload review image: $e');
+    }
+  }
+
+  // --- Profile methods ---
+
+  Future<UserProfile?> getProfile(String userId) async {
+    try {
+      final response = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      if (response == null) return null;
+      return UserProfile.fromJson(response);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> updateProfile({
+    required String userId,
+    required String email,
+    String? fullName,
+    String? avatarUrl,
+    String? role,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        'id': userId,
+        'email': email,
+      };
+      if (fullName != null) data['full_name'] = fullName;
+      if (avatarUrl != null) data['avatar_url'] = avatarUrl;
+      if (role != null) data['role'] = role;
+
+      await supabase.from('profiles').upsert(data);
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
+    }
+  }
+
+  Future<String> uploadAvatarImage(File imageFile) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(imageFile.path);
+      final fileName = 'avatars/$userId/$timestamp$fileExtension';
+
+      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
+      return supabase.storage.from('htbiz_images').getPublicUrl(fileName);
+    } catch (e) {
+      throw Exception('Failed to upload avatar: $e');
+    }
+  }
+
+  // --- Business gallery methods ---
+
+  Future<List<BusinessImage>> getBusinessImages(String businessId) async {
+    try {
+      final response = await supabase
+          .from('business_images')
+          .select()
+          .eq('business_id', businessId)
+          .order('created_at', ascending: true);
+      return (response as List).map((j) => BusinessImage.fromJson(j)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<BusinessImage> addBusinessImage(
+      String businessId, File imageFile) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(imageFile.path);
+      final fileName = 'businesses/$userId/$timestamp$fileExtension';
+
+      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
+      final imageUrl =
+          supabase.storage.from('htbiz_images').getPublicUrl(fileName);
+
+      final response = await supabase
+          .from('business_images')
+          .insert({'business_id': businessId, 'image_url': imageUrl})
+          .select()
+          .single();
+      return BusinessImage.fromJson(response);
+    } catch (e) {
+      throw Exception('Failed to add business image: $e');
+    }
+  }
+
+  // --- Favorites methods ---
+
+  Future<Set<String>> getFavoriteIds(String userId) async {
+    try {
+      final response = await supabase
+          .from('favorites')
+          .select('business_id')
+          .eq('user_id', userId);
+      return (response as List).map((r) => r['business_id'] as String).toSet();
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<void> addFavorite(String businessId) async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase.from('favorites').insert({
+      'user_id': userId,
+      'business_id': businessId,
+    });
+  }
+
+  Future<void> removeFavorite(String businessId) async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('business_id', businessId);
+  }
+
+  Future<List<Business>> getFavoriteBusinesses(String userId) async {
+    try {
+      final favResponse = await supabase
+          .from('favorites')
+          .select('business_id')
+          .eq('user_id', userId);
+      final ids = (favResponse as List).map((r) => r['business_id'] as String).toList();
+      if (ids.isEmpty) return [];
+      final response = await supabase
+          .from('businesses')
+          .select()
+          .inFilter('id', ids);
+      return (response as List).map((j) => Business.fromJson(j)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- Owner reply methods ---
+
+  Future<void> replyToReview(String reviewId, String reply) async {
+    await supabase.from('reviews').update({
+      'owner_reply': reply,
+      'owner_reply_at': DateTime.now().toIso8601String(),
+    }).eq('id', reviewId);
+  }
+
+  Future<void> deleteReviewReply(String reviewId) async {
+    await supabase.from('reviews').update({
+      'owner_reply': null,
+      'owner_reply_at': null,
+    }).eq('id', reviewId);
+  }
+
+  Future<void> deleteBusinessImage(String imageId, String imageUrl) async {
+    try {
+      // Extract storage path from URL
+      final uri = Uri.parse(imageUrl);
+      final pathSegments = uri.pathSegments;
+      final storageIndex = pathSegments.indexOf('htbiz_images');
+      if (storageIndex != -1 && storageIndex < pathSegments.length - 1) {
+        final storagePath =
+            pathSegments.sublist(storageIndex + 1).join('/');
+        await supabase.storage.from('htbiz_images').remove([storagePath]);
+      }
+      await supabase.from('business_images').delete().eq('id', imageId);
+    } catch (e) {
+      throw Exception('Failed to delete business image: $e');
     }
   }
 }

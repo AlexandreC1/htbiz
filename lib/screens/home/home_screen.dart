@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
+import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
@@ -23,11 +24,31 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String? _selectedCategory;
+  UserProfile? _userProfile;
+  Set<String> _favoriteIds = {};
+  bool _showFavoritesOnly = false;
 
   @override
   void initState() {
     super.initState();
     _loadBusinesses();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user != null && !(user.isAnonymous)) {
+      final results = await Future.wait([
+        _businessService.getProfile(user.id),
+        _businessService.getFavoriteIds(user.id),
+      ]);
+      if (mounted) {
+        setState(() {
+          _userProfile = results[0] as UserProfile?;
+          _favoriteIds = results[1] as Set<String>;
+        });
+      }
+    }
   }
 
   Future<void> _loadBusinesses() async {
@@ -61,7 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final matchesCategory = _selectedCategory == null ||
             _selectedCategory == 'all' ||
             business.category.toLowerCase() == _selectedCategory!.toLowerCase();
-        return matchesSearch && matchesCategory;
+        final matchesFavorites =
+            !_showFavoritesOnly || _favoriteIds.contains(business.id);
+        return matchesSearch && matchesCategory && matchesFavorites;
       }).toList();
     });
   }
@@ -70,7 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
     final isGuest = user?.isAnonymous ?? true;
+    final isBusinessOwner = !isGuest && (_userProfile?.isBusinessOwner ?? false);
     final localization = Provider.of<LocalizationService>(context);
+
+    final isLoggedIn = user != null && !(user.isAnonymous);
 
     final List<Map<String, String>> categories = [
       {'key': 'all', 'label': localization.t('all')},
@@ -130,33 +156,55 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Category filter
+          // Category filter + favorites toggle
           SizedBox(
             height: 50,
-            child: ListView.builder(
+            child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final categoryKey = category['key']!;
-                final isSelected = _selectedCategory == categoryKey ||
-                    (categoryKey == 'all' && _selectedCategory == null);
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(category['label']!),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory =
-                            categoryKey == 'all' ? null : categoryKey;
-                      });
-                      _filterBusinesses();
-                    },
+              children: [
+                if (isLoggedIn) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      avatar: Icon(
+                        _showFavoritesOnly
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 16,
+                        color: _showFavoritesOnly ? Colors.red : null,
+                      ),
+                      label: Text(localization.t('favorites')),
+                      selected: _showFavoritesOnly,
+                      selectedColor: Colors.red[50],
+                      checkmarkColor: Colors.red,
+                      onSelected: (selected) {
+                        setState(() => _showFavoritesOnly = selected);
+                        _filterBusinesses();
+                      },
+                    ),
                   ),
-                );
-              },
+                ],
+                ...categories.map((category) {
+                  final categoryKey = category['key']!;
+                  final isSelected = _selectedCategory == categoryKey ||
+                      (categoryKey == 'all' && _selectedCategory == null);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(category['label']!),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory =
+                              categoryKey == 'all' ? null : categoryKey;
+                        });
+                        _filterBusinesses();
+                      },
+                    ),
+                  );
+                }),
+              ],
             ),
           ),
 
@@ -195,7 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: _loadBusinesses,
+                        onRefresh: () async {
+                          await Future.wait([_loadBusinesses(), _loadProfile()]);
+                        },
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: _filteredBusinesses.length,
@@ -220,9 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: isGuest
-          ? null
-          : FloatingActionButton.extended(
+      floatingActionButton: isBusinessOwner
+          ? FloatingActionButton.extended(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -233,7 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               icon: const Icon(Icons.add),
               label: Text(localization.t('add_business')),
-            ),
+            )
+          : null,
     );
   }
 }

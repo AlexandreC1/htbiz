@@ -5,6 +5,9 @@ class Business {
   final String category;
   final String address;
   final String? phone;
+  final String? whatsapp;
+  final String? website;
+  final String? hoursText;
   final String? imageUrl;
   final double rating;
   final int totalReviews;
@@ -18,6 +21,9 @@ class Business {
     required this.category,
     required this.address,
     this.phone,
+    this.whatsapp,
+    this.website,
+    this.hoursText,
     this.imageUrl,
     required this.rating,
     required this.totalReviews,
@@ -25,7 +31,6 @@ class Business {
     required this.createdAt,
   });
 
-  // Convert from Supabase JSON to Business object
   factory Business.fromJson(Map<String, dynamic> json) {
     return Business(
       id: json['id'] as String,
@@ -34,6 +39,9 @@ class Business {
       category: json['category'] as String,
       address: json['address'] as String,
       phone: json['phone'] as String?,
+      whatsapp: json['whatsapp'] as String?,
+      website: json['website'] as String?,
+      hoursText: json['hours_text'] as String?,
       imageUrl: json['image_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       totalReviews: json['total_reviews'] as int? ?? 0,
@@ -42,7 +50,6 @@ class Business {
     );
   }
 
-  // Convert Business object to JSON for Supabase
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -50,6 +57,9 @@ class Business {
       'category': category,
       'address': address,
       'phone': phone,
+      'whatsapp': whatsapp,
+      'website': website,
+      'hours_text': hoursText,
       'image_url': imageUrl,
       'rating': rating,
       'total_reviews': totalReviews,
@@ -57,7 +67,6 @@ class Business {
     };
   }
 
-  // Create a copy with updated fields
   Business copyWith({
     String? id,
     String? name,
@@ -65,6 +74,9 @@ class Business {
     String? category,
     String? address,
     String? phone,
+    String? whatsapp,
+    String? website,
+    String? hoursText,
     String? imageUrl,
     double? rating,
     int? totalReviews,
@@ -78,6 +90,9 @@ class Business {
       category: category ?? this.category,
       address: address ?? this.address,
       phone: phone ?? this.phone,
+      whatsapp: whatsapp ?? this.whatsapp,
+      website: website ?? this.website,
+      hoursText: hoursText ?? this.hoursText,
       imageUrl: imageUrl ?? this.imageUrl,
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,

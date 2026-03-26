@@ -29,6 +29,9 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
   late TextEditingController _descriptionController;
   late TextEditingController _addressController;
   late TextEditingController _phoneController;
+  late TextEditingController _whatsappController;
+  late TextEditingController _websiteController;
+  late TextEditingController _hoursController;
 
   // State
   String _selectedCategoryKey = 'restaurant';
@@ -55,6 +58,12 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
         TextEditingController(text: widget.business.description);
     _addressController = TextEditingController(text: widget.business.address);
     _phoneController = TextEditingController(text: widget.business.phone ?? '');
+    _whatsappController =
+        TextEditingController(text: widget.business.whatsapp ?? '');
+    _websiteController =
+        TextEditingController(text: widget.business.website ?? '');
+    _hoursController =
+        TextEditingController(text: widget.business.hoursText ?? '');
     _currentImageUrl = widget.business.imageUrl;
 
     // Find category key from display name
@@ -79,6 +88,9 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     _descriptionController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _whatsappController.dispose();
+    _websiteController.dispose();
+    _hoursController.dispose();
     super.dispose();
   }
 
@@ -175,6 +187,15 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
         'address': _addressController.text.trim(),
         'phone': _phoneController.text.trim().isNotEmpty
             ? _phoneController.text.trim()
+            : null,
+        'whatsapp': _whatsappController.text.trim().isNotEmpty
+            ? _whatsappController.text.trim()
+            : null,
+        'website': _websiteController.text.trim().isNotEmpty
+            ? _websiteController.text.trim()
+            : null,
+        'hours_text': _hoursController.text.trim().isNotEmpty
+            ? _hoursController.text.trim()
             : null,
         'image_url': imageUrl,
       };
@@ -363,6 +384,47 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                         border: const OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.phone,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // WhatsApp
+                    TextFormField(
+                      controller: _whatsappController,
+                      decoration: InputDecoration(
+                        labelText: localization.t('whatsapp_optional'),
+                        prefixIcon: const Icon(Icons.chat),
+                        hintText: '+509 XXXX XXXX',
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Website
+                    TextFormField(
+                      controller: _websiteController,
+                      decoration: InputDecoration(
+                        labelText: localization.t('website_optional'),
+                        prefixIcon: const Icon(Icons.language),
+                        hintText: 'https://example.com',
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.url,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Hours
+                    TextFormField(
+                      controller: _hoursController,
+                      decoration: InputDecoration(
+                        labelText: localization.t('hours_optional'),
+                        prefixIcon: const Icon(Icons.access_time),
+                        hintText: 'Mon-Fri 8am-6pm',
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
 
                     const SizedBox(height: 32),

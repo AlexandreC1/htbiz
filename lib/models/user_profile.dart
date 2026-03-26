@@ -3,6 +3,7 @@ class UserProfile {
   final String email;
   final String? fullName;
   final String? avatarUrl;
+  final String role; // 'client' or 'business_owner'
   final DateTime createdAt;
 
   UserProfile({
@@ -10,8 +11,11 @@ class UserProfile {
     required this.email,
     this.fullName,
     this.avatarUrl,
+    this.role = 'client',
     required this.createdAt,
   });
+
+  bool get isBusinessOwner => role == 'business_owner';
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -19,6 +23,7 @@ class UserProfile {
       email: json['email'] as String,
       fullName: json['full_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
+      role: json['role'] as String? ?? 'client',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -29,6 +34,7 @@ class UserProfile {
       'email': email,
       'full_name': fullName,
       'avatar_url': avatarUrl,
+      'role': role,
     };
   }
 }

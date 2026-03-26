@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as path;
 import '../../main.dart';
 import '../../models/business_model.dart';
+import '../../models/business_image_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
@@ -27,8 +28,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   final BusinessService _businessService = BusinessService();
   Business? _business;
   List<Review> _reviews = [];
+  List<BusinessImage> _galleryImages = [];
   bool _isLoading = true;
   bool _isSubmittingReview = false;
+  bool _isAddingPhoto = false;
+  bool _isFavorite = false;
+  bool _isTogglingFavorite = false;
 
   @override
   void initState() {
@@ -43,10 +48,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           await _businessService.getBusinessById(widget.businessId);
       final reviews =
           await _businessService.getBusinessReviews(widget.businessId);
+      final galleryImages =
+          await _businessService.getBusinessImages(widget.businessId);
 
+      final user = supabase.auth.currentUser;
+      bool isFav = false;
+      if (user != null && !user.isAnonymous) {
+        final favIds = await _businessService.getFavoriteIds(user.id);
+        isFav = favIds.contains(widget.businessId);
+      }
       setState(() {
         _business = business;
         _reviews = reviews;
+        _galleryImages = galleryImages;
+        _isFavorite = isFav;
         _isLoading = false;
       });
     } catch (e) {
@@ -98,6 +113,109 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         );
       }
     }
+  }
+
+  Future<void> _openWhatsApp(String number) async {
+    final clean = number.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri url = Uri.parse('https://wa.me/$clean');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open WhatsApp')),
+      );
+    }
+  }
+
+  Future<void> _openWebsite(String website) async {
+    final url = website.startsWith('http') ? website : 'https://$website';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open website')),
+      );
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final user = supabase.auth.currentUser;
+    if (user == null || user.isAnonymous) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to save favorites')),
+      );
+      return;
+    }
+    setState(() => _isTogglingFavorite = true);
+    try {
+      if (_isFavorite) {
+        await _businessService.removeFavorite(widget.businessId);
+      } else {
+        await _businessService.addFavorite(widget.businessId);
+      }
+      setState(() => _isFavorite = !_isFavorite);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isTogglingFavorite = false);
+    }
+  }
+
+  void _shareBusiness() {
+    if (_business == null) return;
+    final text = '${_business!.name}\n'
+        '${_business!.category} · ${_business!.address}'
+        '${_business!.phone != null ? '\n📞 ${_business!.phone}' : ''}'
+        '${_business!.whatsapp != null ? '\n💬 WhatsApp: ${_business!.whatsapp}' : ''}';
+    Share.share(text, subject: _business!.name);
+  }
+
+  void _showOwnerReplyDialog(Review review) {
+    final replyController = TextEditingController(text: review.ownerReply ?? '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(review.ownerReply != null ? 'Edit Reply' : 'Reply to Review'),
+        content: TextField(
+          controller: replyController,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Write your reply...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          if (review.ownerReply != null)
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _businessService.deleteReviewReply(review.id);
+                await _loadBusinessDetails();
+              },
+              child: const Text('Delete Reply', style: TextStyle(color: Colors.red)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final reply = replyController.text.trim();
+              if (reply.isEmpty) return;
+              Navigator.pop(context);
+              await _businessService.replyToReview(review.id, reply);
+              await _loadBusinessDetails();
+            },
+            child: const Text('Post Reply'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showEditBusinessDialog() {
@@ -498,6 +616,269 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     );
   }
 
+  Widget _buildPhotoGallery(bool isOwner) {
+    // Collect all photos: main image + gallery images
+    final List<String> allPhotos = [];
+    if (_business?.imageUrl != null) allPhotos.add(_business!.imageUrl!);
+    allPhotos.addAll(_galleryImages.map((img) => img.imageUrl));
+
+    final maxPhotos = 6;
+    final canAddMore = isOwner && allPhotos.length < maxPhotos;
+
+    if (allPhotos.isEmpty && !isOwner) {
+      return Container(
+        height: 220,
+        color: Colors.grey[300],
+        child: const Center(
+          child: Icon(Icons.business, size: 80, color: Colors.grey),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 220,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: allPhotos.length + (canAddMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Add photo button at the end
+          if (index == allPhotos.length) {
+            return _isAddingPhoto
+                ? Container(
+                    width: 160,
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(child: CircularProgressIndicator()),
+                  )
+                : GestureDetector(
+                    onTap: _addGalleryPhoto,
+                    child: Container(
+                      width: 160,
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: Colors.teal, style: BorderStyle.solid),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add_photo_alternate,
+                              size: 40, color: Colors.teal),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add Photo\n(${allPhotos.length}/$maxPhotos)',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.teal, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+          }
+
+          final imageUrl = allPhotos[index];
+          // For gallery images (index > 0 if main image exists), find the BusinessImage
+          final isMainImage = index == 0 && _business?.imageUrl != null;
+          final galleryIndex =
+              isMainImage ? -1 : index - (_business?.imageUrl != null ? 1 : 0);
+          final galleryImage =
+              galleryIndex >= 0 && galleryIndex < _galleryImages.length
+                  ? _galleryImages[galleryIndex]
+                  : null;
+
+          return GestureDetector(
+            onTap: () => _showFullImageDialog(context, imageUrl),
+            onLongPress: (isOwner && !isMainImage && galleryImage != null)
+                ? () => _confirmDeletePhoto(galleryImage)
+                : null,
+            child: Stack(
+              children: [
+                Container(
+                  width: 220,
+                  margin: const EdgeInsets.all(4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child:
+                            const Icon(Icons.broken_image, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+                if (isOwner && !isMainImage && galleryImage != null)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => _confirmDeletePhoto(galleryImage),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _addGalleryPhoto() async {
+    final picker = ImagePicker();
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final image = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  maxWidth: 1920,
+                  maxHeight: 1080,
+                  imageQuality: 85,
+                );
+                if (image != null) await _uploadGalleryPhoto(File(image.path));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take Photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                final image = await picker.pickImage(
+                  source: ImageSource.camera,
+                  maxWidth: 1920,
+                  maxHeight: 1080,
+                  imageQuality: 85,
+                );
+                if (image != null) await _uploadGalleryPhoto(File(image.path));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadGalleryPhoto(File imageFile) async {
+    setState(() => _isAddingPhoto = true);
+    try {
+      final newImage = await _businessService.addBusinessImage(
+          widget.businessId, imageFile);
+      setState(() => _galleryImages.add(newImage));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error uploading photo: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAddingPhoto = false);
+    }
+  }
+
+  Future<void> _confirmDeletePhoto(BusinessImage image) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Photo'),
+        content: const Text('Remove this photo from your business?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _businessService.deleteBusinessImage(image.id, image.imageUrl);
+        setState(() => _galleryImages.removeWhere((img) => img.id == image.id));
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Error deleting photo: $e'),
+                backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
+  void _showFullImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[800],
+                    child: const Center(
+                      child: Icon(Icons.broken_image,
+                          color: Colors.white, size: 60),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 24),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
@@ -511,11 +892,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               ? const Center(child: Text('Business not found'))
               : CustomScrollView(
                   slivers: [
-                    // App Bar with Image
+                    // App Bar
                     SliverAppBar(
-                      expandedHeight: 300,
                       pinned: true,
                       actions: [
+                        // Share button
+                        IconButton(
+                          icon: const Icon(Icons.share),
+                          onPressed: _shareBusiness,
+                        ),
+                        // Favorite button
+                        if (!isOwner)
+                          _isTogglingFavorite
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: Icon(
+                                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                    color: _isFavorite ? Colors.red : null,
+                                  ),
+                                  onPressed: _toggleFavorite,
+                                ),
                         if (isOwner)
                           PopupMenuButton(
                             itemBuilder: (context) => [
@@ -549,30 +952,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             },
                           ),
                       ],
-                      flexibleSpace: FlexibleSpaceBar(
-                        background: _business!.imageUrl != null
-                            ? Image.network(
-                                _business!.imageUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[300],
-                                    child: const Icon(
-                                      Icons.broken_image,
-                                      size: 80,
-                                    ),
-                                  );
-                                },
-                              )
-                            : Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.business,
-                                  size: 80,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                      ),
+                    ),
+
+                    // Photo gallery strip
+                    SliverToBoxAdapter(
+                      child: _buildPhotoGallery(isOwner),
                     ),
 
                     // Business Details
@@ -699,23 +1083,77 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               InkWell(
                                 onTap: () => _makePhoneCall(_business!.phone!),
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.phone,
-                                          color: Colors.teal),
+                                      const Icon(Icons.phone, color: Colors.teal),
                                       const SizedBox(width: 12),
-                                      Text(
-                                        _business!.phone!,
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
+                                      Text(_business!.phone!, style: const TextStyle(fontSize: 16)),
                                       const Spacer(),
                                       const Icon(Icons.call, size: 20),
                                     ],
                                   ),
                                 ),
                               ),
+
+                            // WhatsApp
+                            if (_business!.whatsapp != null)
+                              InkWell(
+                                onTap: () => _openWhatsApp(_business!.whatsapp!),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.chat, color: Color(0xFF25D366)),
+                                      const SizedBox(width: 12),
+                                      Text(_business!.whatsapp!, style: const TextStyle(fontSize: 16)),
+                                      const Spacer(),
+                                      const Icon(Icons.open_in_new, size: 20),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // Website
+                            if (_business!.website != null)
+                              InkWell(
+                                onTap: () => _openWebsite(_business!.website!),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.language, color: Colors.teal),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _business!.website!,
+                                          style: const TextStyle(fontSize: 16, color: Colors.blue),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const Icon(Icons.open_in_new, size: 20),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            // Hours
+                            if (_business!.hoursText != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.schedule, color: Colors.teal),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _business!.hoursText!,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
 
                             const SizedBox(height: 24),
 
@@ -794,7 +1232,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 itemCount: _reviews.length,
                                 itemBuilder: (context, index) {
                                   final review = _reviews[index];
-                                  return _ReviewCard(review: review);
+                                  return _ReviewCard(
+                                    review: review,
+                                    isOwner: isOwner,
+                                    onReply: () => _showOwnerReplyDialog(review),
+                                  );
                                 },
                               ),
                           ],
@@ -809,8 +1251,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
 class _ReviewCard extends StatelessWidget {
   final Review review;
+  final bool isOwner;
+  final VoidCallback onReply;
 
-  const _ReviewCard({required this.review});
+  const _ReviewCard({
+    required this.review,
+    required this.isOwner,
+    required this.onReply,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -881,6 +1329,62 @@ class _ReviewCard extends StatelessWidget {
               Text(
                 review.comment!,
                 style: const TextStyle(fontSize: 14, height: 1.5),
+              ),
+            ],
+
+            // Owner reply button (only shown to owner)
+            if (isOwner) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: onReply,
+                  icon: Icon(
+                    review.ownerReply != null ? Icons.edit : Icons.reply,
+                    size: 16,
+                  ),
+                  label: Text(
+                    review.ownerReply != null ? 'Edit Reply' : 'Reply',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+
+            // Owner reply display
+            if (review.ownerReply != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border(left: BorderSide(color: Colors.teal[300]!, width: 3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.store, size: 14, color: Colors.teal[700]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Owner Reply',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.teal[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      review.ownerReply!,
+                      style: const TextStyle(fontSize: 14, height: 1.4),
+                    ),
+                  ],
+                ),
               ),
             ],
 

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'config/supabase_config.dart';
+import 'screens/auth/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/localization_service.dart';
 
@@ -27,13 +28,33 @@ void main() async {
 }
 
 final supabase = Supabase.instance.client;
+final navigatorKey = GlobalKey<NavigatorState>();
 
-class HTBizApp extends StatelessWidget {
+class HTBizApp extends StatefulWidget {
   const HTBizApp({super.key});
+
+  @override
+  State<HTBizApp> createState() => _HTBizAppState();
+}
+
+class _HTBizAppState extends State<HTBizApp> {
+  @override
+  void initState() {
+    super.initState();
+    supabase.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+          (route) => false,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'HTBIZ',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

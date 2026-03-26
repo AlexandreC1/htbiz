@@ -4,10 +4,11 @@ class Review {
   final String userId;
   final int rating;
   final String? comment;
-  final String? imageUrl; // Added image support
+  final String? imageUrl;
+  final String? ownerReply;
+  final DateTime? ownerReplyAt;
   final DateTime createdAt;
 
-  // Optional: user info for display
   String? userName;
   String? userEmail;
 
@@ -17,7 +18,9 @@ class Review {
     required this.userId,
     required this.rating,
     this.comment,
-    this.imageUrl, // Added image parameter
+    this.imageUrl,
+    this.ownerReply,
+    this.ownerReplyAt,
     required this.createdAt,
     this.userName,
     this.userEmail,
@@ -30,7 +33,11 @@ class Review {
       userId: json['user_id'] as String,
       rating: json['rating'] as int,
       comment: json['comment'] as String?,
-      imageUrl: json['image_url'] as String?, // Added image field parsing
+      imageUrl: json['image_url'] as String?,
+      ownerReply: json['owner_reply'] as String?,
+      ownerReplyAt: json['owner_reply_at'] != null
+          ? DateTime.parse(json['owner_reply_at'] as String)
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       userName: json['user_name'] as String?,
       userEmail: json['user_email'] as String?,
@@ -43,11 +50,10 @@ class Review {
       'user_id': userId,
       'rating': rating,
       'comment': comment,
-      'image_url': imageUrl, // Added image field to serialization
+      'image_url': imageUrl,
     };
   }
 
-  // Copy with method for creating modified copies
   Review copyWith({
     String? id,
     String? businessId,
@@ -55,6 +61,8 @@ class Review {
     int? rating,
     String? comment,
     String? imageUrl,
+    String? ownerReply,
+    DateTime? ownerReplyAt,
     DateTime? createdAt,
     String? userName,
     String? userEmail,
@@ -66,6 +74,8 @@ class Review {
       rating: rating ?? this.rating,
       comment: comment ?? this.comment,
       imageUrl: imageUrl ?? this.imageUrl,
+      ownerReply: ownerReply ?? this.ownerReply,
+      ownerReplyAt: ownerReplyAt ?? this.ownerReplyAt,
       createdAt: createdAt ?? this.createdAt,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
