@@ -151,6 +151,7 @@ class LocalizationService extends ChangeNotifier {
       'total_favorites': 'Total Favorites',
       'rating_distribution': 'Rating Distribution',
       'your_businesses': 'Your Businesses',
+      'manage_businesses': 'Manage, create & view analytics',
       'no_businesses_yet': 'No businesses added yet',
       'recent_reviews': 'Recent Reviews',
 
@@ -288,6 +289,7 @@ class LocalizationService extends ChangeNotifier {
       'total_favorites': 'Total des favoris',
       'rating_distribution': 'Distribution des notes',
       'your_businesses': 'Vos entreprises',
+      'manage_businesses': 'Gérer, créer et voir les analytiques',
       'no_businesses_yet': 'Aucune entreprise ajoutée',
       'recent_reviews': 'Avis récents',
 
@@ -423,6 +425,7 @@ class LocalizationService extends ChangeNotifier {
       'total_favorites': 'Total favori',
       'rating_distribution': 'Distribisyon nòt',
       'your_businesses': 'Biznis ou yo',
+      'manage_businesses': 'Jere, kreye epi wè analiz',
       'no_businesses_yet': 'Pa gen biznis ajoute ankò',
       'recent_reviews': 'Dènye reviw yo',
 

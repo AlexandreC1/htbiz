@@ -7,7 +7,7 @@ import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
-import '../business/analytics_dashboard_screen.dart';
+import '../business/owner_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -194,6 +194,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           role: newRole,
         );
         await _loadProfile();
+
+        // Navigate to owner dashboard when switching to business owner
+        if (newRole == 'business_owner' && mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const OwnerDashboardScreen()),
+          );
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -387,19 +396,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(),
                 ],
 
-                // Analytics (business owners only)
+                // Owner dashboard (business owners only)
                 if (!isGuest && (_profile?.isBusinessOwner ?? false)) ...[
                   ListTile(
-                    leading: const Icon(Icons.analytics, color: Colors.teal),
-                    title: Text(localization.t('analytics')),
-                    subtitle: Text(localization.t('dashboard')),
+                    leading: const Icon(Icons.storefront, color: Colors.teal),
+                    title: Text(localization.t('your_businesses')),
+                    subtitle: Text(localization.t('manage_businesses')),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (_) =>
-                                const AnalyticsDashboardScreen()),
+                                const OwnerDashboardScreen()),
                       );
                     },
                   ),

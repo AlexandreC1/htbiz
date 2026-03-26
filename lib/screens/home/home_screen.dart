@@ -9,6 +9,7 @@ import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
 import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
+import '../business/owner_dashboard_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -189,6 +190,21 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(localization.t('app_name')),
         actions: [
+          if (isBusinessOwner)
+            IconButton(
+              icon: const Icon(Icons.storefront),
+              tooltip: localization.t('your_businesses'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const OwnerDashboardScreen()),
+                ).then((_) {
+                  _loadBusinesses();
+                  _loadProfile();
+                });
+              },
+            ),
           if (isLoggedIn)
             Stack(
               children: [
