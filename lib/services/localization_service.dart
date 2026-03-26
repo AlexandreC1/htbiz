@@ -137,6 +137,31 @@ class LocalizationService extends ChangeNotifier {
       'error_loading_businesses': 'Error loading businesses',
       'error_loading_business': 'Error loading business',
 
+      // Notifications
+      'notifications': 'Notifications',
+      'no_notifications': 'No notifications yet',
+      'mark_all_read': 'Mark all as read',
+      'new_review_on': 'New review on',
+
+      // Analytics
+      'analytics': 'Analytics',
+      'dashboard': 'Dashboard',
+      'total_reviews': 'Total Reviews',
+      'avg_rating': 'Avg Rating',
+      'total_favorites': 'Total Favorites',
+      'rating_distribution': 'Rating Distribution',
+      'your_businesses': 'Your Businesses',
+      'no_businesses_yet': 'No businesses added yet',
+      'recent_reviews': 'Recent Reviews',
+
+      // Location
+      'sort_by_distance': 'Nearest',
+      'distance_km': 'km away',
+      'location_unavailable': 'Location unavailable',
+      'latitude_optional': 'Latitude (Optional)',
+      'longitude_optional': 'Longitude (Optional)',
+      'use_current_location': 'Use Current Location',
+
       // Time
       'today': 'Today',
       'yesterday': 'Yesterday',
@@ -249,6 +274,31 @@ class LocalizationService extends ChangeNotifier {
       'error_loading_businesses': 'Erreur lors du chargement des entreprises',
       'error_loading_business': 'Erreur lors du chargement de l\'entreprise',
 
+      // Notifications
+      'notifications': 'Notifications',
+      'no_notifications': 'Aucune notification',
+      'mark_all_read': 'Tout marquer comme lu',
+      'new_review_on': 'Nouvel avis sur',
+
+      // Analytics
+      'analytics': 'Analytique',
+      'dashboard': 'Tableau de bord',
+      'total_reviews': 'Total des avis',
+      'avg_rating': 'Note moyenne',
+      'total_favorites': 'Total des favoris',
+      'rating_distribution': 'Distribution des notes',
+      'your_businesses': 'Vos entreprises',
+      'no_businesses_yet': 'Aucune entreprise ajoutée',
+      'recent_reviews': 'Avis récents',
+
+      // Location
+      'sort_by_distance': 'Plus proche',
+      'distance_km': 'km',
+      'location_unavailable': 'Localisation indisponible',
+      'latitude_optional': 'Latitude (Optionnel)',
+      'longitude_optional': 'Longitude (Optionnel)',
+      'use_current_location': 'Utiliser la position actuelle',
+
       // Time
       'today': 'Aujourd\'hui',
       'yesterday': 'Hier',
@@ -358,6 +408,31 @@ class LocalizationService extends ChangeNotifier {
       'account_created': 'Kont kreye! Tanpri tcheke imèl ou.',
       'error_loading_businesses': 'Erè nan chajman biznis yo',
       'error_loading_business': 'Erè nan chajman biznis la',
+
+      // Notifications
+      'notifications': 'Notifikasyon',
+      'no_notifications': 'Pa gen notifikasyon ankò',
+      'mark_all_read': 'Make tout kòm li',
+      'new_review_on': 'Nouvo reviw sou',
+
+      // Analytics
+      'analytics': 'Analiz',
+      'dashboard': 'Tablo',
+      'total_reviews': 'Total reviw',
+      'avg_rating': 'Nòt mwayèn',
+      'total_favorites': 'Total favori',
+      'rating_distribution': 'Distribisyon nòt',
+      'your_businesses': 'Biznis ou yo',
+      'no_businesses_yet': 'Pa gen biznis ajoute ankò',
+      'recent_reviews': 'Dènye reviw yo',
+
+      // Location
+      'sort_by_distance': 'Pi pre',
+      'distance_km': 'km',
+      'location_unavailable': 'Lokalizasyon pa disponib',
+      'latitude_optional': 'Latitid (Opsyonèl)',
+      'longitude_optional': 'Longitid (Opsyonèl)',
+      'use_current_location': 'Itilize pozisyon aktyèl',
 
       // Time
       'today': 'Jodi a',

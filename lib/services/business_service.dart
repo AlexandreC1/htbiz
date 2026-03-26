@@ -1,5 +1,7 @@
+import 'dart:math';
 import '../models/business_model.dart';
 import '../models/business_image_model.dart';
+import '../models/notification_model.dart';
 import '../models/review_model.dart';
 import '../models/user_profile.dart';
 import '../main.dart';
@@ -331,7 +333,6 @@ class BusinessService {
 
   Future<void> deleteBusinessImage(String imageId, String imageUrl) async {
     try {
-      // Extract storage path from URL
       final uri = Uri.parse(imageUrl);
       final pathSegments = uri.pathSegments;
       final storageIndex = pathSegments.indexOf('htbiz_images');
@@ -345,4 +346,131 @@ class BusinessService {
       throw Exception('Failed to delete business image: $e');
     }
   }
+
+  // --- Notification methods ---
+
+  Future<List<AppNotification>> getNotifications(String userId) async {
+    try {
+      final response = await supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(50);
+      return (response as List)
+          .map((j) => AppNotification.fromJson(j))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<int> getUnreadNotificationCount(String userId) async {
+    try {
+      final response = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_read', false);
+      return (response as List).length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    await supabase
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('id', notificationId);
+  }
+
+  Future<void> markAllNotificationsRead(String userId) async {
+    await supabase
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('user_id', userId)
+        .eq('is_read', false);
+  }
+
+  Future<void> createNotification({
+    required String userId,
+    required String type,
+    required String title,
+    required String body,
+    String? businessId,
+    String? reviewId,
+  }) async {
+    try {
+      await supabase.from('notifications').insert({
+        'user_id': userId,
+        'type': type,
+        'title': title,
+        'body': body,
+        'business_id': businessId,
+        'review_id': reviewId,
+        'is_read': false,
+      });
+    } catch (e) {
+      // Silently fail — notifications shouldn't break core flow
+    }
+  }
+
+  // --- Analytics methods ---
+
+  Future<List<Business>> getOwnerBusinesses(String ownerId) async {
+    try {
+      final response = await supabase
+          .from('businesses')
+          .select()
+          .eq('owner_id', ownerId)
+          .order('created_at', ascending: false);
+      return (response as List).map((j) => Business.fromJson(j)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<int> getFavoriteCount(String businessId) async {
+    try {
+      final response = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('business_id', businessId);
+      return (response as List).length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<Map<int, int>> getRatingDistribution(String businessId) async {
+    try {
+      final reviews = await getBusinessReviews(businessId);
+      final dist = <int, int>{1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+      for (final r in reviews) {
+        dist[r.rating] = (dist[r.rating] ?? 0) + 1;
+      }
+      return dist;
+    } catch (e) {
+      return {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+    }
+  }
+
+  // --- Location helpers ---
+
+  static double calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const earthRadius = 6371.0; // km
+    final dLat = _toRadians(lat2 - lat1);
+    final dLon = _toRadians(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(lat1)) *
+            cos(_toRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  static double _toRadians(double degrees) => degrees * pi / 180;
 }

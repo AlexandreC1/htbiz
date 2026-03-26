@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/business_model.dart';
@@ -31,11 +32,14 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
   late TextEditingController _whatsappController;
   late TextEditingController _websiteController;
   late TextEditingController _hoursController;
+  late TextEditingController _latController;
+  late TextEditingController _lngController;
 
   // State
   String _selectedCategoryKey = 'restaurant';
   File? _selectedImage;
   bool _isLoading = false;
+  bool _isGettingLocation = false;
   String? _currentImageUrl;
 
   final Map<String, String> _categoryKeys = {
@@ -63,6 +67,10 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
         TextEditingController(text: widget.business.website ?? '');
     _hoursController =
         TextEditingController(text: widget.business.hoursText ?? '');
+    _latController = TextEditingController(
+        text: widget.business.latitude?.toStringAsFixed(6) ?? '');
+    _lngController = TextEditingController(
+        text: widget.business.longitude?.toStringAsFixed(6) ?? '');
     _currentImageUrl = widget.business.imageUrl;
 
     // Find category key from display name
@@ -90,6 +98,8 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     _whatsappController.dispose();
     _websiteController.dispose();
     _hoursController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
     super.dispose();
   }
 
@@ -195,6 +205,12 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
             : null,
         'hours_text': _hoursController.text.trim().isNotEmpty
             ? _hoursController.text.trim()
+            : null,
+        'latitude': _latController.text.trim().isNotEmpty
+            ? double.tryParse(_latController.text.trim())
+            : null,
+        'longitude': _lngController.text.trim().isNotEmpty
+            ? double.tryParse(_lngController.text.trim())
             : null,
         'image_url': imageUrl,
       };
@@ -424,6 +440,101 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                         hintText: 'Mon-Fri 8am-6pm',
                         border: const OutlineInputBorder(),
                       ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Location
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _latController,
+                            decoration: InputDecoration(
+                              labelText: localization.t('latitude_optional'),
+                              prefixIcon: const Icon(Icons.my_location),
+                              border: const OutlineInputBorder(),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lngController,
+                            decoration: InputDecoration(
+                              labelText: localization.t('longitude_optional'),
+                              prefixIcon: const Icon(Icons.my_location),
+                              border: const OutlineInputBorder(),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    OutlinedButton.icon(
+                      onPressed: _isGettingLocation
+                          ? null
+                          : () async {
+                              setState(() => _isGettingLocation = true);
+                              try {
+                                LocationPermission permission =
+                                    await Geolocator.checkPermission();
+                                if (permission == LocationPermission.denied) {
+                                  permission =
+                                      await Geolocator.requestPermission();
+                                }
+                                if (permission == LocationPermission.denied ||
+                                    permission ==
+                                        LocationPermission.deniedForever) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(localization
+                                              .t('location_unavailable'))),
+                                    );
+                                  }
+                                  return;
+                                }
+                                final position =
+                                    await Geolocator.getCurrentPosition(
+                                  locationSettings: const LocationSettings(
+                                      accuracy: LocationAccuracy.high),
+                                );
+                                setState(() {
+                                  _latController.text =
+                                      position.latitude.toStringAsFixed(6);
+                                  _lngController.text =
+                                      position.longitude.toStringAsFixed(6);
+                                });
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(localization
+                                            .t('location_unavailable'))),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isGettingLocation = false);
+                                }
+                              }
+                            },
+                      icon: _isGettingLocation
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.gps_fixed),
+                      label: Text(localization.t('use_current_location')),
                     ),
 
                     const SizedBox(height: 32),

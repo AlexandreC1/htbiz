@@ -8,6 +8,8 @@ class Business {
   final String? whatsapp;
   final String? website;
   final String? hoursText;
+  final double? latitude;
+  final double? longitude;
   final String? imageUrl;
   final double rating;
   final int totalReviews;
@@ -24,6 +26,8 @@ class Business {
     this.whatsapp,
     this.website,
     this.hoursText,
+    this.latitude,
+    this.longitude,
     this.imageUrl,
     required this.rating,
     required this.totalReviews,
@@ -42,6 +46,8 @@ class Business {
       whatsapp: json['whatsapp'] as String?,
       website: json['website'] as String?,
       hoursText: json['hours_text'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
       imageUrl: json['image_url'] as String?,
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       totalReviews: json['total_reviews'] as int? ?? 0,
@@ -60,6 +66,8 @@ class Business {
       'whatsapp': whatsapp,
       'website': website,
       'hours_text': hoursText,
+      'latitude': latitude,
+      'longitude': longitude,
       'image_url': imageUrl,
       'rating': rating,
       'total_reviews': totalReviews,
@@ -77,6 +85,8 @@ class Business {
     String? whatsapp,
     String? website,
     String? hoursText,
+    double? latitude,
+    double? longitude,
     String? imageUrl,
     double? rating,
     int? totalReviews,
@@ -93,6 +103,8 @@ class Business {
       whatsapp: whatsapp ?? this.whatsapp,
       website: website ?? this.website,
       hoursText: hoursText ?? this.hoursText,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       imageUrl: imageUrl ?? this.imageUrl,
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,

@@ -7,6 +7,7 @@ import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
+import '../business/analytics_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -382,6 +383,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         hintText: 'Enter your full name',
                       ),
                     ),
+                  ),
+                  const Divider(),
+                ],
+
+                // Analytics (business owners only)
+                if (!isGuest && (_profile?.isBusinessOwner ?? false)) ...[
+                  ListTile(
+                    leading: const Icon(Icons.analytics, color: Colors.teal),
+                    title: Text(localization.t('analytics')),
+                    subtitle: Text(localization.t('dashboard')),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                const AnalyticsDashboardScreen()),
+                      );
+                    },
                   ),
                   const Divider(),
                 ],

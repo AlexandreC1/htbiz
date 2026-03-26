@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
@@ -8,6 +9,7 @@ import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
 import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
+import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,12 +29,17 @@ class _HomeScreenState extends State<HomeScreen> {
   UserProfile? _userProfile;
   Set<String> _favoriteIds = {};
   bool _showFavoritesOnly = false;
+  int _unreadNotifications = 0;
+  bool _sortByDistance = false;
+  Position? _userPosition;
+  Map<String, double> _distances = {};
 
   @override
   void initState() {
     super.initState();
     _loadBusinesses();
     _loadProfile();
+    _loadNotificationCount();
   }
 
   Future<void> _loadProfile() async {
@@ -48,6 +55,66 @@ class _HomeScreenState extends State<HomeScreen> {
           _favoriteIds = results[1] as Set<String>;
         });
       }
+    }
+  }
+
+  Future<void> _enableLocationSorting() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          final localization =
+              Provider.of<LocalizationService>(context, listen: false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(localization.t('location_unavailable'))),
+          );
+        }
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      _userPosition = position;
+      _calculateDistances();
+      setState(() => _sortByDistance = true);
+      _filterBusinesses();
+    } catch (e) {
+      if (mounted) {
+        final localization =
+            Provider.of<LocalizationService>(context, listen: false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localization.t('location_unavailable'))),
+        );
+      }
+    }
+  }
+
+  void _calculateDistances() {
+    if (_userPosition == null) return;
+    _distances = {};
+    for (final b in _businesses) {
+      if (b.latitude != null && b.longitude != null) {
+        _distances[b.id] = BusinessService.calculateDistance(
+          _userPosition!.latitude,
+          _userPosition!.longitude,
+          b.latitude!,
+          b.longitude!,
+        );
+      }
+    }
+  }
+
+  Future<void> _loadNotificationCount() async {
+    final user = supabase.auth.currentUser;
+    if (user != null && !(user.isAnonymous)) {
+      final count =
+          await _businessService.getUnreadNotificationCount(user.id);
+      if (mounted) setState(() => _unreadNotifications = count);
     }
   }
 
@@ -86,6 +153,14 @@ class _HomeScreenState extends State<HomeScreen> {
             !_showFavoritesOnly || _favoriteIds.contains(business.id);
         return matchesSearch && matchesCategory && matchesFavorites;
       }).toList();
+
+      if (_sortByDistance && _userPosition != null) {
+        _filteredBusinesses.sort((a, b) {
+          final distA = _distances[a.id] ?? double.infinity;
+          final distB = _distances[b.id] ?? double.infinity;
+          return distA.compareTo(distB);
+        });
+      }
     });
   }
 
@@ -114,6 +189,43 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(localization.t('app_name')),
         actions: [
+          if (isLoggedIn)
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen()),
+                    ).then((_) => _loadNotificationCount());
+                  },
+                ),
+                if (_unreadNotifications > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints:
+                          const BoxConstraints(minWidth: 18, minHeight: 18),
+                      child: Text(
+                        '$_unreadNotifications',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
@@ -163,6 +275,29 @@ class _HomeScreenState extends State<HomeScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
+                // Distance sort chip
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    avatar: Icon(
+                      Icons.near_me,
+                      size: 16,
+                      color: _sortByDistance ? Colors.teal : null,
+                    ),
+                    label: Text(localization.t('sort_by_distance')),
+                    selected: _sortByDistance,
+                    selectedColor: Colors.teal[50],
+                    checkmarkColor: Colors.teal,
+                    onSelected: (selected) {
+                      if (selected) {
+                        _enableLocationSorting();
+                      } else {
+                        setState(() => _sortByDistance = false);
+                        _filterBusinesses();
+                      }
+                    },
+                  ),
+                ),
                 if (isLoggedIn) ...[
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -253,6 +388,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             final business = _filteredBusinesses[index];
                             return _BusinessCard(
                               business: business,
+                              distance: _sortByDistance
+                                  ? _distances[business.id]
+                                  : null,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -290,10 +428,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _BusinessCard extends StatelessWidget {
   final Business business;
+  final double? distance;
   final VoidCallback onTap;
 
   const _BusinessCard({
     required this.business,
+    this.distance,
     required this.onTap,
   });
 
@@ -392,6 +532,35 @@ class _BusinessCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (distance != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.teal[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.near_me,
+                                  size: 12, color: Colors.teal[700]),
+                              const SizedBox(width: 2),
+                              Consumer<LocalizationService>(
+                                builder: (context, loc, _) => Text(
+                                  '${distance!.toStringAsFixed(1)} ${loc.t('distance_km')}',
+                                  style: TextStyle(
+                                    color: Colors.teal[700],
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),

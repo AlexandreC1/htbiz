@@ -1,5 +1,6 @@
   import 'dart:io';
   import 'package:flutter/material.dart';
+  import 'package:geolocator/geolocator.dart';
   import 'package:image_picker/image_picker.dart';
   import 'package:provider/provider.dart';
   import '../../main.dart';
@@ -27,11 +28,14 @@
     final _whatsappController = TextEditingController();
     final _websiteController = TextEditingController();
     final _hoursController = TextEditingController();
+    final _latController = TextEditingController();
+    final _lngController = TextEditingController();
 
     // State - USE ENGLISH KEYS INTERNALLY
     String _selectedCategoryKey = 'restaurant'; // CHANGED: Use lowercase key
     File? _selectedImage;
     bool _isLoading = false;
+    bool _isGettingLocation = false;
 
     // Category mapping - keys stay the same, labels translate
     final Map<String, String> _categoryKeys = {
@@ -54,6 +58,8 @@
       _whatsappController.dispose();
       _websiteController.dispose();
       _hoursController.dispose();
+      _latController.dispose();
+      _lngController.dispose();
       super.dispose();
     }
 
@@ -120,6 +126,43 @@
       );
     }
 
+    Future<void> _useCurrentLocation() async {
+      setState(() => _isGettingLocation = true);
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          if (mounted) {
+            final loc = Provider.of<LocalizationService>(context, listen: false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(loc.t('location_unavailable'))),
+            );
+          }
+          return;
+        }
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high),
+        );
+        setState(() {
+          _latController.text = position.latitude.toStringAsFixed(6);
+          _lngController.text = position.longitude.toStringAsFixed(6);
+        });
+      } catch (e) {
+        if (mounted) {
+          final loc = Provider.of<LocalizationService>(context, listen: false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(loc.t('location_unavailable'))),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isGettingLocation = false);
+      }
+    }
+
     Future<void> _submitForm() async {
       if (!_formKey.currentState!.validate()) return;
 
@@ -149,6 +192,8 @@
           whatsapp: _whatsappController.text.trim().isNotEmpty ? _whatsappController.text.trim() : null,
           website: _websiteController.text.trim().isNotEmpty ? _websiteController.text.trim() : null,
           hoursText: _hoursController.text.trim().isNotEmpty ? _hoursController.text.trim() : null,
+          latitude: _latController.text.trim().isNotEmpty ? double.tryParse(_latController.text.trim()) : null,
+          longitude: _lngController.text.trim().isNotEmpty ? double.tryParse(_lngController.text.trim()) : null,
           imageUrl: imageUrl,
           rating: 0.0,
           totalReviews: 0,
@@ -374,6 +419,51 @@
                           prefixIcon: Icon(Icons.schedule),
                           hintText: 'e.g. Mon-Fri 8am-6pm, Sat 9am-3pm',
                         ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Location
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _latController,
+                              decoration: InputDecoration(
+                                labelText: localization.t('latitude_optional'),
+                                prefixIcon: const Icon(Icons.my_location),
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(decimal: true),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _lngController,
+                              decoration: InputDecoration(
+                                labelText: localization.t('longitude_optional'),
+                                prefixIcon: const Icon(Icons.my_location),
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(decimal: true),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      OutlinedButton.icon(
+                        onPressed: _isGettingLocation ? null : _useCurrentLocation,
+                        icon: _isGettingLocation
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.gps_fixed),
+                        label: Text(localization.t('use_current_location')),
                       ),
 
                       const SizedBox(height: 32),

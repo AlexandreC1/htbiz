@@ -464,6 +464,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
                         await _loadBusinessDetails();
 
+                        // Notify the business owner
+                        if (_business != null &&
+                            _business!.ownerId != user.id) {
+                          await _businessService.createNotification(
+                            userId: _business!.ownerId,
+                            type: 'new_review',
+                            title:
+                                '${localization.t('new_review_on')} ${_business!.name}',
+                            body: review.comment ??
+                                '★' * review.rating,
+                            businessId: widget.businessId,
+                          );
+                        }
+
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
