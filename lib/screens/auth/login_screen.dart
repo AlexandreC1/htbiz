@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
+import '../../services/business_service.dart';
+import '../business/owner_dashboard_screen.dart';
 import '../home/home_screen.dart';
+import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -37,9 +41,48 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        // Check for pending role from onboarding
+        final prefs = await SharedPreferences.getInstance();
+        final pendingRole = prefs.getString('pending_role');
+        final user = supabase.auth.currentUser;
+
+        if (pendingRole != null && user != null) {
+          await prefs.remove('pending_role');
+          await BusinessService().updateProfile(
+            userId: user.id,
+            email: user.email ?? '',
+            role: pendingRole,
+          );
+
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => pendingRole == 'business_owner'
+                    ? const OwnerDashboardScreen()
+                    : const HomeScreen(),
+              ),
+              (route) => false,
+            );
+          }
+        } else if (mounted) {
+          // Check if user has a profile — if not, show onboarding
+          final profile = user != null
+              ? await BusinessService().getProfile(user.id)
+              : null;
+
+          if (profile == null && mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                  builder: (_) => const OnboardingScreen()),
+              (route) => false,
+            );
+          } else if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              (route) => false,
+            );
+          }
+        }
       }
     } catch (error) {
       if (mounted) {

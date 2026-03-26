@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../services/business_service.dart';
+import '../business/owner_dashboard_screen.dart';
 import '../home/home_screen.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -17,32 +20,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() => _isLoading = true);
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) {
-        // Email confirmation pending — store role in session metadata
-        // and let the auth listener handle it after confirmation
+
+      if (user != null) {
+        // User is already authenticated — save role and proceed
+        await BusinessService().updateProfile(
+          userId: user.id,
+          email: user.email ?? '',
+          role: role,
+        );
         if (mounted) {
-          setState(() => _isLoading = false);
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => role == 'business_owner'
+                  ? const OwnerDashboardScreen()
+                  : const HomeScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      } else {
+        // User signed up but hasn't confirmed email yet
+        // Save role locally so it's applied after first login
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('pending_role', role);
+
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Please check your email and confirm your account first.'),
-              backgroundColor: Colors.orange,
+                  'Please check your email and confirm your account, then log in.'),
+              backgroundColor: Colors.teal,
               duration: Duration(seconds: 5),
             ),
           );
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
         }
-        return;
-      }
-      await BusinessService().updateProfile(
-        userId: user.id,
-        email: user.email ?? '',
-        role: role,
-      );
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
-        );
       }
     } catch (e) {
       if (mounted) {
