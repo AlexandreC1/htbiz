@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../main.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
@@ -318,7 +317,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
 
                     // Category Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedCategoryKey,
+                      initialValue: _selectedCategoryKey,
                       decoration: InputDecoration(
                         labelText: '${localization.t('category')} *',
                         prefixIcon: const Icon(Icons.category),
@@ -450,9 +449,9 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : Text(
+                          : const Text(
                               'Update Business',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                     ),

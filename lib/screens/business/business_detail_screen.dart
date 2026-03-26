@@ -319,9 +319,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   const SizedBox(height: 8),
 
                   // Photo Section
-                  Text(
+                  const Text(
                     'Add Photo (Optional)',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -426,13 +426,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
                         // Upload review image if selected
                         if (selectedReviewImage != null) {
-                          print('🔄 Uploading image...');
                           reviewImageUrl = await _businessService
                               .uploadReviewImage(selectedReviewImage!);
-                          print('✅ Image uploaded: $reviewImageUrl');
                         }
 
-                        print('🔄 Creating review...');
                         final review = Review(
                           id: '',
                           businessId: widget.businessId,
@@ -446,9 +443,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           imageUrl: reviewImageUrl,
                         );
 
-                        print('🔄 Submitting review...');
                         await _businessService.addReview(review);
-                        print('✅ Review submitted successfully');
 
                         final allReviews = await _businessService
                             .getBusinessReviews(widget.businessId);
@@ -467,9 +462,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           },
                         );
 
-                        print('🔄 Refreshing business details...');
                         await _loadBusinessDetails();
-                        print('✅ Business details refreshed');
 
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -481,7 +474,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           );
                         }
                       } catch (e) {
-                        print('❌ Error: $e');
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -622,7 +614,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     if (_business?.imageUrl != null) allPhotos.add(_business!.imageUrl!);
     allPhotos.addAll(_galleryImages.map((img) => img.imageUrl));
 
-    final maxPhotos = 6;
+    const maxPhotos = 6;
     final canAddMore = isOwner && allPhotos.length < maxPhotos;
 
     if (allPhotos.isEmpty && !isOwner) {

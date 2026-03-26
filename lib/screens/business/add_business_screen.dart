@@ -343,9 +343,9 @@
                       // WhatsApp
                       TextFormField(
                         controller: _whatsappController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'WhatsApp (optional)',
-                          prefixIcon: const Icon(Icons.chat),
+                          prefixIcon: Icon(Icons.chat),
                           hintText: '+509 XXXX XXXX',
                         ),
                         keyboardType: TextInputType.phone,
