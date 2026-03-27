@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../../utils/input_sanitizer.dart';
 
 class EditBusinessScreen extends StatefulWidget {
   final Business business;
@@ -190,19 +191,13 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
 
       // Update business
       final updates = {
-        'name': _nameController.text.trim(),
-        'description': _descriptionController.text.trim(),
+        'name': InputSanitizer.sanitizeName(_nameController.text),
+        'description': InputSanitizer.sanitizeDescription(_descriptionController.text),
         'category': categoryDisplay,
-        'address': _addressController.text.trim(),
-        'phone': _phoneController.text.trim().isNotEmpty
-            ? _phoneController.text.trim()
-            : null,
-        'whatsapp': _whatsappController.text.trim().isNotEmpty
-            ? _whatsappController.text.trim()
-            : null,
-        'website': _websiteController.text.trim().isNotEmpty
-            ? _websiteController.text.trim()
-            : null,
+        'address': InputSanitizer.sanitizeAddress(_addressController.text),
+        'phone': InputSanitizer.sanitizePhone(_phoneController.text),
+        'whatsapp': InputSanitizer.sanitizePhone(_whatsappController.text),
+        'website': InputSanitizer.sanitizeUrl(_websiteController.text),
         'hours_text': _hoursController.text.trim().isNotEmpty
             ? _hoursController.text.trim()
             : null,
