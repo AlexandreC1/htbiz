@@ -1,3 +1,7 @@
+# Environment / Secrets
+.env
+*.env.local
+
 # Miscellaneous
 *.class
 *.log

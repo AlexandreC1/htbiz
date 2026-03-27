@@ -58,7 +58,8 @@ class LocalizationService extends ChangeNotifier {
       'please_enter_email': 'Please enter your email',
       'please_enter_valid_email': 'Please enter a valid email',
       'please_enter_password': 'Please enter your password',
-      'password_min_length': 'Password must be at least 6 characters',
+      'password_min_length': 'Password must be at least 8 characters',
+      'password_complexity': 'Must include uppercase, lowercase, and a number',
       'please_confirm_password': 'Please confirm your password',
       'passwords_dont_match': 'Passwords do not match',
 
@@ -195,7 +196,8 @@ class LocalizationService extends ChangeNotifier {
       'please_enter_valid_email': 'Veuillez entrer un email valide',
       'please_enter_password': 'Veuillez entrer votre mot de passe',
       'password_min_length':
-          'Le mot de passe doit contenir au moins 6 caractères',
+          'Le mot de passe doit contenir au moins 8 caractères',
+      'password_complexity': 'Doit contenir majuscule, minuscule et chiffre',
       'please_confirm_password': 'Veuillez confirmer votre mot de passe',
       'passwords_dont_match': 'Les mots de passe ne correspondent pas',
 
@@ -332,7 +334,8 @@ class LocalizationService extends ChangeNotifier {
       'please_enter_email': 'Tanpri antre imèl ou',
       'please_enter_valid_email': 'Tanpri antre yon imèl valab',
       'please_enter_password': 'Tanpri antre modpas ou',
-      'password_min_length': 'Modpas la dwe gen omwen 6 karaktè',
+      'password_min_length': 'Modpas la dwe gen omwen 8 karaktè',
+      'password_complexity': 'Dwe gen majiskil, miniskil, ak yon chif',
       'please_confirm_password': 'Tanpri konfime modpas ou',
       'passwords_dont_match': 'Modpas yo pa menm',
 

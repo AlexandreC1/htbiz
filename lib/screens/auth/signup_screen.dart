@@ -129,8 +129,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (value == null || value.isEmpty) {
                         return localization.t('please_enter_password');
                       }
-                      if (value.length < 6) {
+                      if (value.length < 8) {
                         return localization.t('password_min_length');
+                      }
+                      if (!RegExp(r'(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
+                        return localization.t('password_complexity');
                       }
                       return null;
                     },

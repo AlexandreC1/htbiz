@@ -21,6 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  int _failedAttempts = 0;
+  DateTime? _lockoutUntil;
 
   @override
   void dispose() {
@@ -31,6 +33,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Throttle after repeated failures
+    if (_lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!)) {
+      final seconds = _lockoutUntil!.difference(DateTime.now()).inSeconds;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Too many attempts. Try again in ${seconds}s'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -85,6 +99,17 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (error) {
+      _failedAttempts++;
+      // Exponential backoff: 30s after 5 fails, 60s after 8, 120s after 10
+      if (_failedAttempts >= 5) {
+        final lockSeconds = _failedAttempts >= 10
+            ? 120
+            : _failedAttempts >= 8
+                ? 60
+                : 30;
+        _lockoutUntil = DateTime.now().add(Duration(seconds: lockSeconds));
+      }
+
       if (mounted) {
         String errorMessage = 'An error occurred';
 

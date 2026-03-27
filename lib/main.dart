@@ -10,6 +10,14 @@ import 'services/localization_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Validate Supabase config
+  assert(
+    SupabaseConfig.supabaseUrl.isNotEmpty &&
+        SupabaseConfig.supabaseAnonKey.isNotEmpty,
+    'Supabase config missing. Run with:\n'
+    'flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...',
+  );
+
   // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,

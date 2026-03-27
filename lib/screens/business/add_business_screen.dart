@@ -7,6 +7,7 @@
   import '../../models/business_model.dart';
   import '../../services/business_service.dart';
   import '../../services/localization_service.dart';
+  import '../../utils/input_sanitizer.dart';
 
   class AddBusinessScreen extends StatefulWidget {
     const AddBusinessScreen({super.key});
@@ -184,14 +185,14 @@
         // Create business object
         final business = Business(
           id: '',
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim(),
+          name: InputSanitizer.sanitizeName(_nameController.text),
+          description: InputSanitizer.sanitizeDescription(_descriptionController.text),
           category: categoryDisplay,
-          address: _addressController.text.trim(),
-          phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
-          whatsapp: _whatsappController.text.trim().isNotEmpty ? _whatsappController.text.trim() : null,
-          website: _websiteController.text.trim().isNotEmpty ? _websiteController.text.trim() : null,
-          hoursText: _hoursController.text.trim().isNotEmpty ? _hoursController.text.trim() : null,
+          address: InputSanitizer.sanitizeAddress(_addressController.text),
+          phone: InputSanitizer.sanitizePhone(_phoneController.text),
+          whatsapp: InputSanitizer.sanitizePhone(_whatsappController.text),
+          website: InputSanitizer.sanitizeUrl(_websiteController.text),
+          hoursText: _hoursController.text.trim().isNotEmpty ? InputSanitizer.sanitize(_hoursController.text, maxLength: 200) : null,
           latitude: _latController.text.trim().isNotEmpty ? double.tryParse(_latController.text.trim()) : null,
           longitude: _lngController.text.trim().isNotEmpty ? double.tryParse(_lngController.text.trim()) : null,
           imageUrl: imageUrl,
