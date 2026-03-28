@@ -510,6 +510,29 @@ class BusinessService {
     }
   }
 
+  // --- Business verification methods ---
+
+  Future<String> uploadPatentDocument(File imageFile) async {
+    try {
+      final userId = supabase.auth.currentUser!.id;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(imageFile.path);
+      final fileName = 'patents/$userId/$timestamp$fileExtension';
+
+      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
+      return supabase.storage.from('htbiz_images').getPublicUrl(fileName);
+    } catch (e) {
+      throw Exception('Failed to upload patent document: $e');
+    }
+  }
+
+  Future<void> submitVerification(String businessId, String patentDocUrl) async {
+    await supabase.from('businesses').update({
+      'patent_doc_url': patentDocUrl,
+      'verification_status': 'pending',
+    }).eq('id', businessId);
+  }
+
   // --- Check-in / Verified visit methods ---
 
   Future<void> checkInToBusiness(String businessId) async {

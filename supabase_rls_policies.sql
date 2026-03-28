@@ -26,6 +26,8 @@ CREATE POLICY "businesses_insert_own"
   WITH CHECK (auth.uid() = owner_id);
 
 -- Only the owner can update their business
+-- Note: verification_status can only be set to 'pending' by owners;
+-- an admin/service_role would set 'verified' or 'rejected' via the dashboard.
 CREATE POLICY "businesses_update_own"
   ON businesses FOR UPDATE
   USING (auth.uid() = owner_id)
@@ -213,6 +215,18 @@ CREATE POLICY "check_ins_insert_own"
   WITH CHECK (auth.uid() = user_id);
 
 -- =====================================================
+-- BUSINESS VERIFICATION (patent upload)
+-- =====================================================
+
+-- Add verification columns to businesses table:
+-- ALTER TABLE businesses ADD COLUMN IF NOT EXISTS verification_status TEXT DEFAULT 'none';
+-- ALTER TABLE businesses ADD COLUMN IF NOT EXISTS patent_doc_url TEXT;
+
+-- Note: The existing businesses RLS policies already cover reads/writes.
+-- Owners can update their own businesses (including submitting verification).
+-- Patent documents are stored in the htbiz_images bucket under patents/ folder.
+
+-- =====================================================
 -- STORAGE POLICIES (htbiz_images bucket)
 -- =====================================================
 -- Run these separately if you haven't already:
@@ -239,3 +253,12 @@ CREATE POLICY "check_ins_insert_own"
 --     AND auth.role() = 'authenticated'
 --     AND (storage.foldername(name))[2] = auth.uid()::text
 --   );
+
+-- =====================================================
+-- BUSINESS VERIFICATION (patent upload)
+-- =====================================================
+-- Run these to add verification columns:
+
+-- ALTER TABLE businesses ADD COLUMN IF NOT EXISTS verification_status TEXT DEFAULT 'none'
+--   CHECK (verification_status IN ('none', 'pending', 'verified', 'rejected'));
+-- ALTER TABLE businesses ADD COLUMN IF NOT EXISTS patent_doc_url TEXT;

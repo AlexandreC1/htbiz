@@ -169,6 +169,11 @@
 
       setState(() => _isLoading = true);
 
+      final localization =
+          Provider.of<LocalizationService>(context, listen: false);
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
       try {
         String? imageUrl;
 
@@ -178,8 +183,6 @@
         }
 
         // Get translated category name for storage
-        final localization =
-            Provider.of<LocalizationService>(context, listen: false);
         final categoryDisplay = localization.t(_selectedCategoryKey);
 
         // Create business object
@@ -206,21 +209,17 @@
         await _businessService.createBusiness(business);
 
         if (mounted) {
-          final localization =
-              Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(localization.t('business_added_success')),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context, true);
+          navigator.pop(true);
         }
       } catch (e) {
         if (mounted) {
-          final localization =
-              Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text('${localization.t('error')}: $e'),
               backgroundColor: Colors.red,

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
@@ -73,6 +75,95 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   int get _totalFavorites =>
       _favoriteCounts.values.fold(0, (sum, c) => sum + c);
+
+  Future<void> _submitVerification(Business business) async {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+    final imagePicker = ImagePicker();
+
+    // Show bottom sheet to pick patent image
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                localization.t('upload_patent'),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                localization.t('upload_patent_description'),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(localization.t('choose_from_gallery')),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: Text(localization.t('take_photo')),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final XFile? image = await imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localization.t('uploading_patent')),
+            duration: const Duration(seconds: 10),
+          ),
+        );
+      }
+
+      final patentUrl =
+          await _businessService.uploadPatentDocument(File(image.path));
+      await _businessService.submitVerification(business.id, patentUrl);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localization.t('verification_submitted')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${localization.t('error')}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _deleteBusiness(Business business) async {
     final localization =
@@ -370,12 +461,27 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          business.name,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                business.name,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (business.verificationStatus == 'verified') ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.verified,
+                                  size: 16, color: Colors.blue[600]),
+                            ] else if (business.verificationStatus == 'pending') ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.hourglass_top,
+                                  size: 14, color: Colors.orange[600]),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -416,6 +522,68 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               ),
             ),
           ),
+
+          // Verification status banner
+          if (business.verificationStatus == 'none' ||
+              business.verificationStatus == 'rejected')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: business.verificationStatus == 'rejected'
+                  ? Colors.red[50]
+                  : Colors.orange[50],
+              child: Row(
+                children: [
+                  Icon(
+                    business.verificationStatus == 'rejected'
+                        ? Icons.cancel_outlined
+                        : Icons.info_outline,
+                    size: 16,
+                    color: business.verificationStatus == 'rejected'
+                        ? Colors.red[700]
+                        : Colors.orange[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      business.verificationStatus == 'rejected'
+                          ? localization.t('verification_rejected')
+                          : localization.t('not_verified_hint'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: business.verificationStatus == 'rejected'
+                            ? Colors.red[700]
+                            : Colors.orange[700],
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _submitVerification(business),
+                    child: Text(
+                      localization.t('verify_now'),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (business.verificationStatus == 'pending')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.blue[50],
+              child: Row(
+                children: [
+                  Icon(Icons.hourglass_top,
+                      size: 16, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  Text(
+                    localization.t('verification_pending'),
+                    style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                  ),
+                ],
+              ),
+            ),
 
           // Action buttons row
           const Divider(height: 1),

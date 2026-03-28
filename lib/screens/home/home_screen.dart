@@ -496,12 +496,26 @@ class _BusinessCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          business.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                business.name,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (business.verificationStatus == 'verified') ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.verified,
+                                color: Colors.blue[600],
+                                size: 20,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Container(

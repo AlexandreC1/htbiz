@@ -473,6 +473,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       setDialogState(() => isUploadingImage = true);
                       setState(() => _isSubmittingReview = true);
                       Navigator.pop(context);
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                       try {
                         String? reviewImageUrl;
@@ -533,7 +534,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         }
 
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          scaffoldMessenger.showSnackBar(
                             SnackBar(
                               content:
                                   Text(localization.t('review_added_success')),
@@ -543,7 +544,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          scaffoldMessenger.showSnackBar(
                             SnackBar(
                               content: Text('${localization.t('error')}: $e'),
                               backgroundColor: Colors.red,
@@ -580,6 +581,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               title: const Text('Choose from Gallery'),
               onTap: () async {
                 Navigator.pop(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   final XFile? image = await ImagePicker().pickImage(
                     source: ImageSource.gallery,
@@ -592,7 +594,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(content: Text('Error picking image: $e')),
                     );
                   }
@@ -604,6 +606,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               title: const Text('Take Photo'),
               onTap: () async {
                 Navigator.pop(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   final XFile? image = await ImagePicker().pickImage(
                     source: ImageSource.camera,
@@ -616,7 +619,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(content: Text('Error taking photo: $e')),
                     );
                   }
@@ -1030,12 +1033,29 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    _business!.name,
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _business!.name,
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_business!.verificationStatus == 'verified') ...[
+                                        const SizedBox(width: 8),
+                                        Tooltip(
+                                          message: localization.t('verified_business'),
+                                          child: Icon(
+                                            Icons.verified,
+                                            color: Colors.blue[600],
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                                 Container(

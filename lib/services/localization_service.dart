@@ -27,14 +27,17 @@ class LocalizationService extends ChangeNotifier {
 
   // Get translated string
   String translate(String key) {
-    return _translations[_currentLanguage]?[key] ?? key;
+    return _translationsMap[_currentLanguage]?[key] ?? key;
   }
 
   // Short method name for convenience
   String t(String key) => translate(key);
 
   // All translations
-  static const Map<String, Map<String, String>> _translations = {
+  /// Exposed for testing — verifies all languages have matching keys.
+  static const Map<String, Map<String, String>> translations = _translationsMap;
+
+  static const Map<String, Map<String, String>> _translationsMap = {
     'en': {
       // App General
       'app_name': 'HTBIZ',
@@ -183,6 +186,17 @@ class LocalizationService extends ChangeNotifier {
       'already_checked_in': 'You already checked in to this business.',
       'sign_in_to_like': 'Sign in to like reviews',
       'sign_in_to_check_in': 'Sign in to check in',
+
+      // Business verification
+      'verified_business': 'Verified Business',
+      'upload_patent': 'Upload Business Patent',
+      'upload_patent_description': 'Upload a photo of your business patent (patente) to get verified. This helps build trust with customers.',
+      'uploading_patent': 'Uploading patent document...',
+      'verification_submitted': 'Verification submitted! We will review your document shortly.',
+      'verification_pending': 'Verification under review',
+      'verification_rejected': 'Verification was rejected. Please try again with a clearer document.',
+      'not_verified_hint': 'Upload your patent to get verified',
+      'verify_now': 'Verify',
     },
     'fr': {
       // App General
@@ -334,6 +348,17 @@ class LocalizationService extends ChangeNotifier {
       'already_checked_in': 'Vous êtes déjà enregistré dans cette entreprise.',
       'sign_in_to_like': 'Connectez-vous pour aimer les avis',
       'sign_in_to_check_in': 'Connectez-vous pour vous enregistrer',
+
+      // Business verification
+      'verified_business': 'Entreprise vérifiée',
+      'upload_patent': 'Téléverser la patente',
+      'upload_patent_description': 'Téléversez une photo de votre patente commerciale pour être vérifié. Cela renforce la confiance des clients.',
+      'uploading_patent': 'Téléversement de la patente...',
+      'verification_submitted': 'Vérification soumise! Nous examinerons votre document sous peu.',
+      'verification_pending': 'Vérification en cours d\'examen',
+      'verification_rejected': 'Vérification refusée. Veuillez réessayer avec un document plus clair.',
+      'not_verified_hint': 'Téléversez votre patente pour être vérifié',
+      'verify_now': 'Vérifier',
     },
     'ht': {
       // App General
@@ -483,6 +508,17 @@ class LocalizationService extends ChangeNotifier {
       'already_checked_in': 'Ou deja anrejistre nan biznis sa a.',
       'sign_in_to_like': 'Konekte pou renmen reviw',
       'sign_in_to_check_in': 'Konekte pou anrejistre',
+
+      // Business verification
+      'verified_business': 'Biznis verifye',
+      'upload_patent': 'Voye patant biznis',
+      'upload_patent_description': 'Voye yon foto patant biznis ou pou yo verifye ou. Sa ede kliyan yo fè ou konfyans.',
+      'uploading_patent': 'Ap voye patant lan...',
+      'verification_submitted': 'Verifikasyon soumèt! Nou pral egzamine dokiman ou talè.',
+      'verification_pending': 'Verifikasyon ap revize',
+      'verification_rejected': 'Verifikasyon refize. Tanpri eseye ankò ak yon dokiman pi klè.',
+      'not_verified_hint': 'Voye patant ou pou yo verifye ou',
+      'verify_now': 'Verifye',
     },
   };
 }

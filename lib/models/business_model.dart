@@ -15,6 +15,8 @@ class Business {
   final int totalReviews;
   final String ownerId;
   final DateTime createdAt;
+  final String verificationStatus; // 'none', 'pending', 'verified', 'rejected'
+  final String? patentDocUrl;
 
   Business({
     required this.id,
@@ -33,6 +35,8 @@ class Business {
     required this.totalReviews,
     required this.ownerId,
     required this.createdAt,
+    this.verificationStatus = 'none',
+    this.patentDocUrl,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -53,6 +57,8 @@ class Business {
       totalReviews: json['total_reviews'] as int? ?? 0,
       ownerId: json['owner_id'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      verificationStatus: json['verification_status'] as String? ?? 'none',
+      patentDocUrl: json['patent_doc_url'] as String?,
     );
   }
 
@@ -72,6 +78,8 @@ class Business {
       'rating': rating,
       'total_reviews': totalReviews,
       'owner_id': ownerId,
+      'verification_status': verificationStatus,
+      'patent_doc_url': patentDocUrl,
     };
   }
 
@@ -92,6 +100,8 @@ class Business {
     int? totalReviews,
     String? ownerId,
     DateTime? createdAt,
+    String? verificationStatus,
+    String? patentDocUrl,
   }) {
     return Business(
       id: id ?? this.id,
@@ -110,6 +120,8 @@ class Business {
       totalReviews: totalReviews ?? this.totalReviews,
       ownerId: ownerId ?? this.ownerId,
       createdAt: createdAt ?? this.createdAt,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      patentDocUrl: patentDocUrl ?? this.patentDocUrl,
     );
   }
 }
