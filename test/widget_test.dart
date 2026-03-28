@@ -105,7 +105,7 @@ void main() {
 
   group('LocalizationService', () {
     test('all three languages have the same keys', () {
-      final translations = LocalizationService.translations;
+      const translations = LocalizationService.translations;
       final enKeys = translations['en']!.keys.toSet();
       final frKeys = translations['fr']!.keys.toSet();
       final htKeys = translations['ht']!.keys.toSet();

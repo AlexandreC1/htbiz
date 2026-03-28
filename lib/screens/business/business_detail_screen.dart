@@ -649,11 +649,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               try {
                 await _businessService.deleteBusiness(widget.businessId);
                 if (mounted) {
-                  Navigator.pop(context, true);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  navigator.pop(true);
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text(localization.t('business_deleted_success')),
                       backgroundColor: Colors.green,
@@ -662,7 +664,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('${localization.t('error')}: $e')),
                   );
                 }
