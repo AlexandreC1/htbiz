@@ -456,6 +456,84 @@ class BusinessService {
     }
   }
 
+  // --- Review likes methods ---
+
+  Future<void> likeReview(String reviewId) async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase.from('review_likes').insert({
+      'review_id': reviewId,
+      'user_id': userId,
+    });
+  }
+
+  Future<void> unlikeReview(String reviewId) async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase
+        .from('review_likes')
+        .delete()
+        .eq('review_id', reviewId)
+        .eq('user_id', userId);
+  }
+
+  /// Populate likesCount and isLikedByMe on a list of reviews
+  Future<void> populateReviewLikes(List<Review> reviews, String? currentUserId) async {
+    if (reviews.isEmpty) return;
+    try {
+      final reviewIds = reviews.map((r) => r.id).toList();
+
+      // Get all likes for these reviews
+      final likesResponse = await supabase
+          .from('review_likes')
+          .select('review_id, user_id')
+          .inFilter('review_id', reviewIds);
+
+      final likes = likesResponse as List;
+
+      // Count likes per review and check if current user liked
+      final countMap = <String, int>{};
+      final likedByMe = <String>{};
+
+      for (final like in likes) {
+        final rid = like['review_id'] as String;
+        countMap[rid] = (countMap[rid] ?? 0) + 1;
+        if (currentUserId != null && like['user_id'] == currentUserId) {
+          likedByMe.add(rid);
+        }
+      }
+
+      for (final review in reviews) {
+        review.likesCount = countMap[review.id] ?? 0;
+        review.isLikedByMe = likedByMe.contains(review.id);
+      }
+    } catch (e) {
+      // Silently fail — likes are non-critical
+    }
+  }
+
+  // --- Check-in / Verified visit methods ---
+
+  Future<void> checkInToBusiness(String businessId) async {
+    final userId = supabase.auth.currentUser!.id;
+    await supabase.from('check_ins').insert({
+      'user_id': userId,
+      'business_id': businessId,
+    });
+  }
+
+  Future<bool> hasCheckedIn(String userId, String businessId) async {
+    try {
+      final response = await supabase
+          .from('check_ins')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('business_id', businessId)
+          .limit(1);
+      return (response as List).isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // --- Location helpers ---
 
   static double calculateDistance(

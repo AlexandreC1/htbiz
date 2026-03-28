@@ -171,6 +171,18 @@ class LocalizationService extends ChangeNotifier {
       'weeks_ago': 'weeks ago',
       'months_ago': 'months ago',
       'years_ago': 'years ago',
+
+      // Review likes & check-ins
+      'like': 'Like',
+      'likes': 'likes',
+      'liked': 'Liked',
+      'check_in': 'Check In',
+      'checked_in': 'Checked In',
+      'verified_visit': 'Verified Visit',
+      'check_in_success': 'You checked in! Your reviews will be marked as verified.',
+      'already_checked_in': 'You already checked in to this business.',
+      'sign_in_to_like': 'Sign in to like reviews',
+      'sign_in_to_check_in': 'Sign in to check in',
     },
     'fr': {
       // App General
@@ -310,6 +322,18 @@ class LocalizationService extends ChangeNotifier {
       'weeks_ago': 'semaines',
       'months_ago': 'mois',
       'years_ago': 'ans',
+
+      // Review likes & check-ins
+      'like': 'J\'aime',
+      'likes': 'j\'aime',
+      'liked': 'Aimé',
+      'check_in': 'S\'enregistrer',
+      'checked_in': 'Enregistré',
+      'verified_visit': 'Visite vérifiée',
+      'check_in_success': 'Enregistrement réussi! Vos avis seront marqués comme vérifiés.',
+      'already_checked_in': 'Vous êtes déjà enregistré dans cette entreprise.',
+      'sign_in_to_like': 'Connectez-vous pour aimer les avis',
+      'sign_in_to_check_in': 'Connectez-vous pour vous enregistrer',
     },
     'ht': {
       // App General
@@ -447,6 +471,18 @@ class LocalizationService extends ChangeNotifier {
       'weeks_ago': 'semèn pase',
       'months_ago': 'mwa pase',
       'years_ago': 'ane pase',
+
+      // Review likes & check-ins
+      'like': 'Renmen',
+      'likes': 'renmen',
+      'liked': 'Renmen',
+      'check_in': 'Anrejistre',
+      'checked_in': 'Anrejistre',
+      'verified_visit': 'Vizit verifye',
+      'check_in_success': 'Ou anrejistre! Reviw ou yo ap gen mak verifye.',
+      'already_checked_in': 'Ou deja anrejistre nan biznis sa a.',
+      'sign_in_to_like': 'Konekte pou renmen reviw',
+      'sign_in_to_check_in': 'Konekte pou anrejistre',
     },
   };
 }

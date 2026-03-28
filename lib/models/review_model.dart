@@ -8,9 +8,14 @@ class Review {
   final String? ownerReply;
   final DateTime? ownerReplyAt;
   final DateTime createdAt;
+  final bool isVerifiedVisit;
 
   String? userName;
   String? userEmail;
+
+  // Client-side state (populated after fetch)
+  int likesCount;
+  bool isLikedByMe;
 
   Review({
     required this.id,
@@ -22,8 +27,11 @@ class Review {
     this.ownerReply,
     this.ownerReplyAt,
     required this.createdAt,
+    this.isVerifiedVisit = false,
     this.userName,
     this.userEmail,
+    this.likesCount = 0,
+    this.isLikedByMe = false,
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
@@ -39,6 +47,7 @@ class Review {
           ? DateTime.parse(json['owner_reply_at'] as String)
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
+      isVerifiedVisit: json['is_verified_visit'] as bool? ?? false,
       userName: json['user_name'] as String?,
       userEmail: json['user_email'] as String?,
     );
@@ -51,6 +60,7 @@ class Review {
       'rating': rating,
       'comment': comment,
       'image_url': imageUrl,
+      'is_verified_visit': isVerifiedVisit,
     };
   }
 
@@ -64,8 +74,11 @@ class Review {
     String? ownerReply,
     DateTime? ownerReplyAt,
     DateTime? createdAt,
+    bool? isVerifiedVisit,
     String? userName,
     String? userEmail,
+    int? likesCount,
+    bool? isLikedByMe,
   }) {
     return Review(
       id: id ?? this.id,
@@ -77,8 +90,11 @@ class Review {
       ownerReply: ownerReply ?? this.ownerReply,
       ownerReplyAt: ownerReplyAt ?? this.ownerReplyAt,
       createdAt: createdAt ?? this.createdAt,
+      isVerifiedVisit: isVerifiedVisit ?? this.isVerifiedVisit,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
+      likesCount: likesCount ?? this.likesCount,
+      isLikedByMe: isLikedByMe ?? this.isLikedByMe,
     );
   }
 }

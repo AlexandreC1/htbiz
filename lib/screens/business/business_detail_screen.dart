@@ -34,6 +34,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   bool _isAddingPhoto = false;
   bool _isFavorite = false;
   bool _isTogglingFavorite = false;
+  bool _hasCheckedIn = false;
 
   @override
   void initState() {
@@ -53,15 +54,25 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
       final user = supabase.auth.currentUser;
       bool isFav = false;
+      bool checkedIn = false;
       if (user != null && !user.isAnonymous) {
         final favIds = await _businessService.getFavoriteIds(user.id);
         isFav = favIds.contains(widget.businessId);
+        checkedIn = await _businessService.hasCheckedIn(user.id, widget.businessId);
       }
+
+      // Populate like counts and user's like status
+      await _businessService.populateReviewLikes(
+        reviews,
+        (user != null && !user.isAnonymous) ? user.id : null,
+      );
+
       setState(() {
         _business = business;
         _reviews = reviews;
         _galleryImages = galleryImages;
         _isFavorite = isFav;
+        _hasCheckedIn = checkedIn;
         _isLoading = false;
       });
     } catch (e) {
@@ -230,6 +241,48 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         _loadBusinessDetails(); // Refresh the business details
       }
     });
+  }
+
+  Future<void> _checkIn() async {
+    final user = supabase.auth.currentUser;
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
+    if (user == null || user.isAnonymous) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localization.t('sign_in_to_check_in'))),
+      );
+      return;
+    }
+
+    if (_hasCheckedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localization.t('already_checked_in'))),
+      );
+      return;
+    }
+
+    try {
+      await _businessService.checkInToBusiness(widget.businessId);
+      setState(() => _hasCheckedIn = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localization.t('check_in_success')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${localization.t('error')}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showAddReviewDialog() {
@@ -441,6 +494,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           createdAt: DateTime.now(),
                           userEmail: user.email ?? 'Anonymous User',
                           imageUrl: reviewImageUrl,
+                          isVerifiedVisit: _hasCheckedIn,
                         );
 
                         await _businessService.addReview(review);
@@ -1163,16 +1217,46 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
                             const SizedBox(height: 24),
 
-                            // Add Review Button
-                            ElevatedButton.icon(
-                              onPressed: _showAddReviewDialog,
-                              icon: const Icon(Icons.rate_review),
-                              label: Text(localization.t('write_review')),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(double.infinity, 48),
-                              ),
+                            // Check-in & Review Buttons
+                            Row(
+                              children: [
+                                // Check-in button
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _checkIn,
+                                    icon: Icon(
+                                      _hasCheckedIn ? Icons.check_circle : Icons.place,
+                                      color: _hasCheckedIn ? Colors.green : null,
+                                    ),
+                                    label: Text(
+                                      _hasCheckedIn
+                                          ? localization.t('checked_in')
+                                          : localization.t('check_in'),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size(0, 48),
+                                      side: BorderSide(
+                                        color: _hasCheckedIn ? Colors.green : Colors.teal,
+                                      ),
+                                      foregroundColor: _hasCheckedIn ? Colors.green : Colors.teal,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Write Review button
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _showAddReviewDialog,
+                                    icon: const Icon(Icons.rate_review),
+                                    label: Text(localization.t('write_review')),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(0, 48),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
 
                             const SizedBox(height: 24),
@@ -1242,6 +1326,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     review: review,
                                     isOwner: isOwner,
                                     onReply: () => _showOwnerReplyDialog(review),
+                                    businessService: _businessService,
                                   );
                                 },
                               ),
@@ -1255,20 +1340,75 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 }
 
-class _ReviewCard extends StatelessWidget {
+class _ReviewCard extends StatefulWidget {
   final Review review;
   final bool isOwner;
   final VoidCallback onReply;
+  final BusinessService businessService;
 
   const _ReviewCard({
     required this.review,
     required this.isOwner,
     required this.onReply,
+    required this.businessService,
   });
+
+  @override
+  State<_ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<_ReviewCard> {
+  late int _likesCount;
+  late bool _isLikedByMe;
+  bool _isTogglingLike = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _likesCount = widget.review.likesCount;
+    _isLikedByMe = widget.review.isLikedByMe;
+  }
+
+  Future<void> _toggleLike() async {
+    final user = supabase.auth.currentUser;
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
+    if (user == null || user.isAnonymous) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localization.t('sign_in_to_like'))),
+      );
+      return;
+    }
+
+    if (_isTogglingLike) return;
+    setState(() => _isTogglingLike = true);
+
+    try {
+      if (_isLikedByMe) {
+        await widget.businessService.unlikeReview(widget.review.id);
+        setState(() {
+          _isLikedByMe = false;
+          _likesCount--;
+        });
+      } else {
+        await widget.businessService.likeReview(widget.review.id);
+        setState(() {
+          _isLikedByMe = true;
+          _likesCount++;
+        });
+      }
+    } catch (e) {
+      // Silently fail
+    } finally {
+      if (mounted) setState(() => _isTogglingLike = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final localization = Provider.of<LocalizationService>(context);
+    final review = widget.review;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1292,12 +1432,48 @@ class _ReviewCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        review.userEmail ?? 'Anonymous',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              review.userEmail ?? 'Anonymous',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Verified visit badge
+                          if (review.isVerifiedVisit) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.green[300]!),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.verified,
+                                      size: 12, color: Colors.green[700]),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    localization.t('verified_visit'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.green[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -1338,24 +1514,101 @@ class _ReviewCard extends StatelessWidget {
               ),
             ],
 
-            // Owner reply button (only shown to owner)
-            if (isOwner) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: onReply,
-                  icon: Icon(
-                    review.ownerReply != null ? Icons.edit : Icons.reply,
-                    size: 16,
-                  ),
-                  label: Text(
-                    review.ownerReply != null ? 'Edit Reply' : 'Reply',
-                    style: const TextStyle(fontSize: 13),
+            // Review image
+            if (review.imageUrl != null && review.imageUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => _showFullImageDialog(context, review.imageUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: Image.network(
+                      review.imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(Icons.broken_image,
+                                color: Colors.grey, size: 40),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ],
+
+            const SizedBox(height: 8),
+
+            // Like button row
+            Row(
+              children: [
+                InkWell(
+                  onTap: _toggleLike,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isLikedByMe
+                              ? Icons.thumb_up
+                              : Icons.thumb_up_outlined,
+                          size: 18,
+                          color: _isLikedByMe ? Colors.blue : Colors.grey[600],
+                        ),
+                        if (_likesCount > 0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '$_likesCount',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _isLikedByMe
+                                  ? Colors.blue
+                                  : Colors.grey[600],
+                              fontWeight: _isLikedByMe
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Owner reply button (only shown to owner)
+                if (widget.isOwner)
+                  TextButton.icon(
+                    onPressed: widget.onReply,
+                    icon: Icon(
+                      review.ownerReply != null ? Icons.edit : Icons.reply,
+                      size: 16,
+                    ),
+                    label: Text(
+                      review.ownerReply != null ? 'Edit Reply' : 'Reply',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
 
             // Owner reply display
             if (review.ownerReply != null) ...[
@@ -1365,7 +1618,8 @@ class _ReviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.teal[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border(left: BorderSide(color: Colors.teal[300]!, width: 3)),
+                  border: Border(
+                      left: BorderSide(color: Colors.teal[300]!, width: 3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1393,50 +1647,6 @@ class _ReviewCard extends StatelessWidget {
                 ),
               ),
             ],
-
-            // Review image
-            if (review.imageUrl != null && review.imageUrl!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => _showFullImageDialog(context, review.imageUrl!),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(
-                      maxHeight: 200,
-                    ),
-                    child: Image.network(
-                      review.imageUrl!,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: Icon(
-                              Icons.broken_image,
-                              color: Colors.grey,
-                              size: 40,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -1459,11 +1669,8 @@ class _ReviewCard extends StatelessWidget {
                     return Container(
                       color: Colors.grey[800],
                       child: const Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          color: Colors.white,
-                          size: 60,
-                        ),
+                        child: Icon(Icons.broken_image,
+                            color: Colors.white, size: 60),
                       ),
                     );
                   },
@@ -1481,11 +1688,8 @@ class _ReviewCard extends StatelessWidget {
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  child:
+                      const Icon(Icons.close, color: Colors.white, size: 24),
                 ),
               ),
             ),

@@ -158,6 +158,61 @@ CREATE POLICY "business_images_delete_owner"
   );
 
 -- =====================================================
+-- REVIEW_LIKES
+-- =====================================================
+
+-- Create table if needed:
+-- CREATE TABLE review_likes (
+--   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+--   review_id UUID NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+--   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+--   created_at TIMESTAMPTZ DEFAULT now(),
+--   UNIQUE(review_id, user_id)
+-- );
+
+ALTER TABLE review_likes ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read like counts
+CREATE POLICY "review_likes_select_public"
+  ON review_likes FOR SELECT
+  USING (true);
+
+-- Authenticated users can like (must be their own user_id)
+CREATE POLICY "review_likes_insert_own"
+  ON review_likes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can remove their own likes
+CREATE POLICY "review_likes_delete_own"
+  ON review_likes FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- =====================================================
+-- CHECK_INS
+-- =====================================================
+
+-- Create table if needed:
+-- CREATE TABLE check_ins (
+--   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+--   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+--   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+--   created_at TIMESTAMPTZ DEFAULT now(),
+--   UNIQUE(user_id, business_id)
+-- );
+
+ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
+
+-- Users can read their own check-ins
+CREATE POLICY "check_ins_select_own"
+  ON check_ins FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Authenticated users can check in (must be their own user_id)
+CREATE POLICY "check_ins_insert_own"
+  ON check_ins FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- =====================================================
 -- STORAGE POLICIES (htbiz_images bucket)
 -- =====================================================
 -- Run these separately if you haven't already:
