@@ -512,23 +512,37 @@ class BusinessService {
 
   // --- Business verification methods ---
 
+  /// Upload patent to PRIVATE bucket — no public URL generated
   Future<String> uploadPatentDocument(File imageFile) async {
     try {
       final userId = supabase.auth.currentUser!.id;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileExtension = path.extension(imageFile.path);
-      final fileName = 'patents/$userId/$timestamp$fileExtension';
+      final storagePath = '$userId/$timestamp$fileExtension';
 
-      await supabase.storage.from('htbiz_images').upload(fileName, imageFile);
-      return supabase.storage.from('htbiz_images').getPublicUrl(fileName);
+      await supabase.storage.from('htbiz_patents').upload(storagePath, imageFile);
+      // Store the storage path, NOT a public URL
+      return storagePath;
     } catch (e) {
       throw Exception('Failed to upload patent document: $e');
     }
   }
 
-  Future<void> submitVerification(String businessId, String patentDocUrl) async {
+  /// Generate a short-lived signed URL for viewing a patent (owner/admin only)
+  Future<String> getPatentSignedUrl(String storagePath) async {
+    try {
+      final result = await supabase.storage
+          .from('htbiz_patents')
+          .createSignedUrl(storagePath, 300); // 5 minutes
+      return result;
+    } catch (e) {
+      throw Exception('Failed to get patent URL: $e');
+    }
+  }
+
+  Future<void> submitVerification(String businessId, String patentStoragePath) async {
     await supabase.from('businesses').update({
-      'patent_doc_url': patentDocUrl,
+      'patent_doc_url': patentStoragePath,
       'verification_status': 'pending',
     }).eq('id', businessId);
   }

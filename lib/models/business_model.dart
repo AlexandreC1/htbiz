@@ -63,7 +63,7 @@ class Business {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'name': name,
       'description': description,
       'category': category,
@@ -72,15 +72,16 @@ class Business {
       'whatsapp': whatsapp,
       'website': website,
       'hours_text': hoursText,
-      'latitude': latitude,
-      'longitude': longitude,
       'image_url': imageUrl,
       'rating': rating,
       'total_reviews': totalReviews,
       'owner_id': ownerId,
-      'verification_status': verificationStatus,
-      'patent_doc_url': patentDocUrl,
     };
+    if (latitude != null) map['latitude'] = latitude;
+    if (longitude != null) map['longitude'] = longitude;
+    if (verificationStatus != 'none') map['verification_status'] = verificationStatus;
+    if (patentDocUrl != null) map['patent_doc_url'] = patentDocUrl;
+    return map;
   }
 
   Business copyWith({

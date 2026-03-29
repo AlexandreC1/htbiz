@@ -7,6 +7,8 @@ import '../../models/business_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../auth/login_screen.dart';
+import '../profile/profile_screen.dart';
 import 'add_business_screen.dart';
 import 'analytics_dashboard_screen.dart';
 import 'business_detail_screen.dart';
@@ -216,6 +218,29 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 context,
                 FadeSlideRoute(page: const AnalyticsDashboardScreen()),
               ).then((_) => _loadData());
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: localization.t('profile'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                FadeSlideRoute(page: const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: localization.t('sign_out'),
+            onPressed: () async {
+              await supabase.auth.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  FadeSlideRoute(page: const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],
