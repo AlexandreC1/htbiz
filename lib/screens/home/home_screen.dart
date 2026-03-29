@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
@@ -20,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final BusinessService _businessService = BusinessService();
   List<Business> _businesses = [];
   List<Business> _filteredBusinesses = [];
@@ -35,12 +37,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Position? _userPosition;
   Map<String, double> _distances = {};
 
+  late AnimationController _listAnimController;
+
   @override
   void initState() {
     super.initState();
+    _listAnimController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
     _loadBusinesses();
     _loadProfile();
     _loadNotificationCount();
+  }
+
+  @override
+  void dispose() {
+    _listAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -128,6 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _filteredBusinesses = businesses;
         _isLoading = false;
       });
+      _listAnimController.forward(from: 0);
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -163,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     });
+    _listAnimController.forward(from: 0);
   }
 
   @override
@@ -171,34 +187,57 @@ class _HomeScreenState extends State<HomeScreen> {
     final isGuest = user?.isAnonymous ?? true;
     final isBusinessOwner = !isGuest && (_userProfile?.isBusinessOwner ?? false);
     final localization = Provider.of<LocalizationService>(context);
-
     final isLoggedIn = user != null && !(user.isAnonymous);
 
-    final List<Map<String, String>> categories = [
-      {'key': 'all', 'label': localization.t('all')},
-      {'key': 'restaurant', 'label': localization.t('restaurant')},
-      {'key': 'hotel', 'label': localization.t('hotel')},
-      {'key': 'shop', 'label': localization.t('shop')},
-      {'key': 'service', 'label': localization.t('service')},
-      {'key': 'entertainment', 'label': localization.t('entertainment')},
-      {'key': 'healthcare', 'label': localization.t('healthcare')},
-      {'key': 'education', 'label': localization.t('education')},
-      {'key': 'other', 'label': localization.t('other')},
+    final List<Map<String, dynamic>> categories = [
+      {'key': 'all', 'label': localization.t('all'), 'icon': Icons.apps_rounded},
+      {'key': 'restaurant', 'label': localization.t('restaurant'), 'icon': Icons.restaurant_rounded},
+      {'key': 'hotel', 'label': localization.t('hotel'), 'icon': Icons.hotel_rounded},
+      {'key': 'shop', 'label': localization.t('shop'), 'icon': Icons.shopping_bag_rounded},
+      {'key': 'service', 'label': localization.t('service'), 'icon': Icons.build_rounded},
+      {'key': 'entertainment', 'label': localization.t('entertainment'), 'icon': Icons.celebration_rounded},
+      {'key': 'healthcare', 'label': localization.t('healthcare'), 'icon': Icons.local_hospital_rounded},
+      {'key': 'education', 'label': localization.t('education'), 'icon': Icons.school_rounded},
+      {'key': 'other', 'label': localization.t('other'), 'icon': Icons.more_horiz_rounded},
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localization.t('app_name')),
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.storefront_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              localization.t('app_name'),
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
         actions: [
           if (isBusinessOwner)
-            IconButton(
-              icon: const Icon(Icons.storefront),
+            _AppBarAction(
+              icon: Icons.storefront_outlined,
               tooltip: localization.t('your_businesses'),
-              onPressed: () {
+              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const OwnerDashboardScreen()),
+                  FadeSlideRoute(page: const OwnerDashboardScreen()),
                 ).then((_) {
                   _loadBusinesses();
                   _loadProfile();
@@ -208,20 +247,19 @@ class _HomeScreenState extends State<HomeScreen> {
           if (isLoggedIn)
             Stack(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {
+                _AppBarAction(
+                  icon: Icons.notifications_outlined,
+                  onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const NotificationsScreen()),
+                      FadeSlideRoute(page: const NotificationsScreen()),
                     ).then((_) => _loadNotificationCount());
                   },
                 ),
                 if (_unreadNotifications > 0)
                   Positioned(
-                    right: 6,
-                    top: 6,
+                    right: 8,
+                    top: 8,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
@@ -232,50 +270,58 @@ class _HomeScreenState extends State<HomeScreen> {
                           const BoxConstraints(minWidth: 18, minHeight: 18),
                       child: Text(
                         '$_unreadNotifications',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   ),
               ],
             ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
+          _AppBarAction(
+            icon: Icons.person_outline_rounded,
+            onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                FadeSlideRoute(page: const ProfileScreen()),
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
+          _AppBarAction(
+            icon: Icons.logout_rounded,
+            onTap: () async {
               await supabase.auth.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  FadeSlideRoute(page: const LoginScreen()),
                 );
               }
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
           // Search bar
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: TextField(
               decoration: InputDecoration(
                 hintText: localization.t('search_businesses'),
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 15,
                 ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: Colors.grey[500],
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -284,71 +330,60 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Category filter + favorites toggle
+          // Filter chips
           SizedBox(
-            height: 50,
+            height: 44,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 // Distance sort chip
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    avatar: Icon(
-                      Icons.near_me,
-                      size: 16,
-                      color: _sortByDistance ? Colors.teal : null,
-                    ),
-                    label: Text(localization.t('sort_by_distance')),
-                    selected: _sortByDistance,
-                    selectedColor: Colors.teal[50],
-                    checkmarkColor: Colors.teal,
-                    onSelected: (selected) {
-                      if (selected) {
-                        _enableLocationSorting();
-                      } else {
-                        setState(() => _sortByDistance = false);
-                        _filterBusinesses();
-                      }
-                    },
-                  ),
+                _FilterPill(
+                  icon: Icons.near_me_rounded,
+                  label: localization.t('sort_by_distance'),
+                  selected: _sortByDistance,
+                  activeColor: AppColors.primary,
+                  onTap: () {
+                    if (!_sortByDistance) {
+                      _enableLocationSorting();
+                    } else {
+                      setState(() => _sortByDistance = false);
+                      _filterBusinesses();
+                    }
+                  },
                 ),
                 if (isLoggedIn) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      avatar: Icon(
-                        _showFavoritesOnly
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        size: 16,
-                        color: _showFavoritesOnly ? Colors.red : null,
-                      ),
-                      label: Text(localization.t('favorites')),
-                      selected: _showFavoritesOnly,
-                      selectedColor: Colors.red[50],
-                      checkmarkColor: Colors.red,
-                      onSelected: (selected) {
-                        setState(() => _showFavoritesOnly = selected);
-                        _filterBusinesses();
-                      },
-                    ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    icon: _showFavoritesOnly
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    label: localization.t('favorites'),
+                    selected: _showFavoritesOnly,
+                    activeColor: Colors.red,
+                    onTap: () {
+                      setState(
+                          () => _showFavoritesOnly = !_showFavoritesOnly);
+                      _filterBusinesses();
+                    },
                   ),
                 ],
-                ...categories.map((category) {
-                  final categoryKey = category['key']!;
-                  final isSelected = _selectedCategory == categoryKey ||
-                      (categoryKey == 'all' && _selectedCategory == null);
+                const SizedBox(width: 8),
+                ...categories.map((cat) {
+                  final key = cat['key'] as String;
+                  final isSelected = _selectedCategory == key ||
+                      (key == 'all' && _selectedCategory == null);
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(category['label']!),
+                    child: _FilterPill(
+                      icon: cat['icon'] as IconData,
+                      label: cat['label'] as String,
                       selected: isSelected,
-                      onSelected: (selected) {
+                      activeColor: AppColors.primary,
+                      onTap: () {
                         setState(() {
                           _selectedCategory =
-                              categoryKey == 'all' ? null : categoryKey;
+                              key == 'all' ? null : key;
                         });
                         _filterBusinesses();
                       },
@@ -359,63 +394,63 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Business list
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildShimmerList()
                 : _filteredBusinesses.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.business_outlined,
-                              size: 80,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              localization.t('no_businesses_found'),
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              localization.t('be_first_to_add'),
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? _buildEmptyState(localization)
                     : RefreshIndicator(
                         onRefresh: () async {
-                          await Future.wait([_loadBusinesses(), _loadProfile()]);
+                          await Future.wait(
+                              [_loadBusinesses(), _loadProfile()]);
                         },
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredBusinesses.length,
-                          itemBuilder: (context, index) {
-                            final business = _filteredBusinesses[index];
-                            return _BusinessCard(
-                              business: business,
-                              distance: _sortByDistance
-                                  ? _distances[business.id]
-                                  : null,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BusinessDetailScreen(
-                                      businessId: business.id,
+                        color: AppColors.primary,
+                        child: AnimatedBuilder(
+                          animation: _listAnimController,
+                          builder: (context, _) {
+                            return ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                  16, 0, 16, 100),
+                              itemCount: _filteredBusinesses.length,
+                              itemBuilder: (context, index) {
+                                final business = _filteredBusinesses[index];
+                                // Staggered fade-in per item
+                                final itemDelay = (index * 0.1).clamp(0.0, 0.6);
+                                final itemEnd = (itemDelay + 0.4).clamp(0.0, 1.0);
+                                final itemAnimation = CurvedAnimation(
+                                  parent: _listAnimController,
+                                  curve: Interval(itemDelay, itemEnd,
+                                      curve: Curves.easeOutCubic),
+                                );
+
+                                return FadeTransition(
+                                  opacity: itemAnimation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.08),
+                                      end: Offset.zero,
+                                    ).animate(itemAnimation),
+                                    child: _BusinessCard(
+                                      business: business,
+                                      distance: _sortByDistance
+                                          ? _distances[business.id]
+                                          : null,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          FadeSlideRoute(
+                                            page: BusinessDetailScreen(
+                                              businessId: business.id,
+                                            ),
+                                          ),
+                                        ).then((_) => _loadBusinesses());
+                                      },
                                     ),
                                   ),
-                                ).then((_) => _loadBusinesses());
+                                );
                               },
                             );
                           },
@@ -429,18 +464,267 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddBusinessScreen(),
-                  ),
+                  FadeSlideRoute(page: const AddBusinessScreen()),
                 ).then((_) => _loadBusinesses());
               },
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: Text(localization.t('add_business')),
             )
           : null,
     );
   }
+
+  Widget _buildEmptyState(LocalizationService localization) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Icon(
+                Icons.storefront_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              localization.t('no_businesses_found'),
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              localization.t('be_first_to_add'),
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _ShimmerCard(delay: index * 150),
+        );
+      },
+    );
+  }
 }
+
+// --- Shimmer loading card ---
+
+class _ShimmerCard extends StatefulWidget {
+  final int delay;
+  const _ShimmerCard({required this.delay});
+
+  @override
+  State<_ShimmerCard> createState() => _ShimmerCardState();
+}
+
+class _ShimmerCardState extends State<_ShimmerCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _shimmerController.repeat();
+    });
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image placeholder
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  gradient: LinearGradient(
+                    begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
+                    end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
+                    colors: [
+                      Colors.grey[200]!,
+                      Colors.grey[100]!,
+                      Colors.grey[200]!,
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _shimmerBar(width: 180, height: 18),
+                    const SizedBox(height: 10),
+                    _shimmerBar(width: double.infinity, height: 12),
+                    const SizedBox(height: 6),
+                    _shimmerBar(width: 220, height: 12),
+                    const SizedBox(height: 12),
+                    _shimmerBar(width: 140, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _shimmerBar({required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        gradient: LinearGradient(
+          begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
+          end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
+          colors: [
+            Colors.grey[200]!,
+            Colors.grey[100]!,
+            Colors.grey[200]!,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Filter pill chip ---
+
+class _FilterPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _FilterPill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? activeColor.withValues(alpha: 0.12)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? activeColor : Colors.grey.shade300,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? activeColor : Colors.grey[600],
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? activeColor : Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- App bar action button ---
+
+class _AppBarAction extends StatelessWidget {
+  final IconData icon;
+  final String? tooltip;
+  final VoidCallback onTap;
+
+  const _AppBarAction({
+    required this.icon,
+    this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+// --- Business card ---
 
 class _BusinessCard extends StatelessWidget {
   final Business business;
@@ -455,167 +739,244 @@ class _BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Business image
-            if (business.imageUrl != null)
-              Image.network(
-                business.imageUrl!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.broken_image, size: 50),
-                  );
-                },
-              )
-            else
-              Container(
-                height: 200,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: Icon(Icons.business, size: 50, color: Colors.grey),
-                ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-
-            // Business info
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              Stack(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
+                  if (business.imageUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: business.imageUrl!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        height: 180,
+                        color: Colors.grey[100],
+                        child: Center(
+                          child: Icon(Icons.image_outlined,
+                              size: 40, color: Colors.grey[300]),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        height: 180,
+                        color: Colors.grey[100],
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              size: 40, color: Colors.grey[300]),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 180,
+                      color: Colors.grey[100],
+                      child: Center(
+                        child: Icon(Icons.storefront_outlined,
+                            size: 48, color: Colors.grey[300]),
+                      ),
+                    ),
+
+                  // Category badge overlay
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        business.category,
+                        style: GoogleFonts.poppins(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Rating overlay
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded,
+                              size: 14, color: Colors.amber),
+                          const SizedBox(width: 3),
+                          Text(
+                            business.rating.toStringAsFixed(1),
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Distance overlay
+                  if (distance != null)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Flexible(
-                              child: Text(
-                                business.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                            const Icon(Icons.near_me_rounded,
+                                size: 12, color: AppColors.primary),
+                            const SizedBox(width: 3),
+                            Consumer<LocalizationService>(
+                              builder: (context, loc, _) => Text(
+                                '${distance!.toStringAsFixed(1)} ${loc.t('distance_km')}',
+                                style: GoogleFonts.poppins(
+                                  color: AppColors.primary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                            if (business.verificationStatus == 'verified') ...[
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.verified,
-                                color: Colors.blue[600],
-                                size: 20,
-                              ),
-                            ],
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.teal[50],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          business.category,
-                          style: TextStyle(
-                            color: Colors.teal[700],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    business.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      height: 1.4,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          business.address,
-                          style: const TextStyle(color: Colors.grey),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (distance != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.teal[50],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.near_me,
-                                  size: 12, color: Colors.teal[700]),
-                              const SizedBox(width: 2),
-                              Consumer<LocalizationService>(
-                                builder: (context, loc, _) => Text(
-                                  '${distance!.toStringAsFixed(1)} ${loc.t('distance_km')}',
-                                  style: TextStyle(
-                                    color: Colors.teal[700],
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 16, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        business.rating.toStringAsFixed(1),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Consumer<LocalizationService>(
-                        builder: (context, localization, child) {
-                          return Text(
-                            ' (${business.totalReviews} ${localization.t('reviews').toLowerCase()})',
-                            style: const TextStyle(color: Colors.grey),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
                 ],
               ),
-            ),
-          ],
+
+              // Info section
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Name + verified badge
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            business.name,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (business.verificationStatus == 'verified') ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.verified_rounded,
+                            color: Colors.blue[600],
+                            size: 20,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Description
+                    Text(
+                      business.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Address + reviews
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 15, color: Colors.grey[500]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            business.address,
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Consumer<LocalizationService>(
+                          builder: (context, localization, child) {
+                            return Text(
+                              '${business.totalReviews} ${localization.t('reviews').toLowerCase()}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

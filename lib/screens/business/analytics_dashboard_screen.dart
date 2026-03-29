@@ -294,8 +294,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => BusinessDetailScreen(businessId: business.id),
+            FadeSlideRoute(
+              page: BusinessDetailScreen(businessId: business.id),
             ),
           ).then((_) => _loadAnalytics());
         },

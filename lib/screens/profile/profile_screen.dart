@@ -199,8 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (newRole == 'business_owner' && mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (_) => const OwnerDashboardScreen()),
+            FadeSlideRoute(page: const OwnerDashboardScreen()),
           );
         }
       } catch (e) {
@@ -238,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Save',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF006064),
+                        color: AppColors.primaryDark,
                       ),
                     ),
             ),
@@ -288,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: const BoxDecoration(
-                                color: Color(0xFF006064),
+                                color: AppColors.primaryDark,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -406,9 +405,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                const OwnerDashboardScreen()),
+                        FadeSlideRoute(
+                                page: const OwnerDashboardScreen()),
                       );
                     },
                   ),
@@ -437,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     await supabase.auth.signOut();
                     if (context.mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        FadeSlideRoute(page: const LoginScreen()),
                         (route) => false,
                       );
                     }

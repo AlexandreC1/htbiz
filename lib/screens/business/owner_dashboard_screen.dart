@@ -214,8 +214,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (_) => const AnalyticsDashboardScreen()),
+                FadeSlideRoute(page: const AnalyticsDashboardScreen()),
               ).then((_) => _loadData());
             },
           ),
@@ -252,9 +251,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const AddBusinessScreen()),
+                                      FadeSlideRoute(
+                                              page: const AddBusinessScreen()),
                                     ).then((_) => _loadData());
                                   },
                                   icon: const Icon(Icons.add),
@@ -325,7 +323,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const AddBusinessScreen()),
+            FadeSlideRoute(page: const AddBusinessScreen()),
           ).then((_) => _loadData());
         },
         icon: const Icon(Icons.add),
@@ -421,9 +419,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      BusinessDetailScreen(businessId: business.id),
+                FadeSlideRoute(
+                  page: BusinessDetailScreen(businessId: business.id),
                 ),
               ).then((_) => _loadData());
             },
@@ -594,9 +591,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            EditBusinessScreen(business: business),
+                      FadeSlideRoute(
+                        page: EditBusinessScreen(business: business),
                       ),
                     ).then((_) => _loadData());
                   },

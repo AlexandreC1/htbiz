@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../services/business_service.dart';
@@ -30,8 +31,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         );
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => role == 'business_owner'
+            FadeSlideRoute(
+              page: role == 'business_owner'
                   ? const OwnerDashboardScreen()
                   : const HomeScreen(),
             ),
@@ -54,7 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           );
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            FadeSlideRoute(page: const LoginScreen()),
             (route) => false,
           );
         }
@@ -81,39 +82,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 40),
-                    const Icon(
-                      Icons.waving_hand,
-                      size: 64,
-                      color: Color(0xFF006064),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Welcome to HTBIZ!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF006064),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: const Icon(
+                        Icons.waving_hand_rounded,
+                        size: 40,
+                        color: AppColors.primary,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Welcome to HTBIZ!',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       'How will you use HTBIZ?',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 48),
 
                     // Business Owner card
                     _RoleCard(
-                      icon: Icons.store,
+                      icon: Icons.storefront_rounded,
                       title: "I'm a Business Owner",
                       subtitle:
                           'List and manage your business, upload photos, respond to reviews',
-                      color: const Color(0xFF006064),
+                      color: AppColors.primaryDark,
                       onTap: () => _selectRole('business_owner'),
                     ),
 
@@ -121,11 +130,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                     // Client card
                     _RoleCard(
-                      icon: Icons.search,
+                      icon: Icons.search_rounded,
                       title: "I'm a Client",
                       subtitle:
                           'Discover local businesses, read and write reviews',
-                      color: Colors.teal[700]!,
+                      color: AppColors.accent,
                       onTap: () => _selectRole('client'),
                     ),
 

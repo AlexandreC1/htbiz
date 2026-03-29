@@ -53,9 +53,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (notification.businessId != null && mounted) {
       await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) =>
-              BusinessDetailScreen(businessId: notification.businessId!),
+        FadeSlideRoute(
+          page: BusinessDetailScreen(businessId: notification.businessId!),
         ),
       );
       _loadNotifications();

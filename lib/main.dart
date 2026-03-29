@@ -38,6 +38,19 @@ void main() async {
 final supabase = Supabase.instance.client;
 final navigatorKey = GlobalKey<NavigatorState>();
 
+// Brand colors
+class AppColors {
+  static const primary = Color(0xFF00897B);      // Teal 600
+  static const primaryDark = Color(0xFF00695C);   // Teal 800
+  static const primaryLight = Color(0xFFB2DFDB);  // Teal 100
+  static const accent = Color(0xFF26A69A);        // Teal 400
+  static const surface = Color(0xFFFAFAFA);
+  static const card = Colors.white;
+  static const textPrimary = Color(0xFF212121);
+  static const textSecondary = Color(0xFF757575);
+  static const divider = Color(0xFFEEEEEE);
+}
+
 class HTBizApp extends StatefulWidget {
   const HTBizApp({super.key});
 
@@ -67,28 +80,139 @@ class _HTBizAppState extends State<HTBizApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
+          seedColor: AppColors.primary,
           brightness: Brightness.light,
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          surface: AppColors.surface,
         ),
+        scaffoldBackgroundColor: AppColors.surface,
         textTheme: GoogleFonts.poppinsTextTheme(),
         useMaterial3: true,
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          titleTextStyle: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          clipBehavior: Clip.antiAlias,
+          color: AppColors.card,
+        ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            side: const BorderSide(color: AppColors.primary),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        chipTheme: ChipThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: BorderSide(color: Colors.grey.shade300),
+          selectedColor: AppColors.primaryLight,
+          showCheckmark: false,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: AppColors.divider,
+          thickness: 1,
         ),
       ),
       home: const SplashScreen(),
     );
   }
+}
+
+/// Smooth fade + slide page transition
+class FadeSlideRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  FadeSlideRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionDuration: const Duration(milliseconds: 350),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curve = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            );
+            return FadeTransition(
+              opacity: curve,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.04),
+                  end: Offset.zero,
+                ).animate(curve),
+                child: child,
+              ),
+            );
+          },
+        );
 }

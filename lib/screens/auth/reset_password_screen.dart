@@ -320,7 +320,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ElevatedButton(
           onPressed: () {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              FadeSlideRoute(page: const LoginScreen()),
               (route) => false,
             );
           },

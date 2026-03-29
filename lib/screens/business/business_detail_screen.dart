@@ -233,8 +233,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     // Navigate to the actual edit screen
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => EditBusinessScreen(business: _business!),
+      FadeSlideRoute(
+        page: EditBusinessScreen(business: _business!),
       ),
     ).then((updated) {
       if (updated == true) {
