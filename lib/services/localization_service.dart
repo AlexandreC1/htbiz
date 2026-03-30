@@ -197,6 +197,11 @@ class LocalizationService extends ChangeNotifier {
       'verification_rejected': 'Verification was rejected. Please try again with a clearer document.',
       'not_verified_hint': 'Upload your patent to get verified',
       'verify_now': 'Verify',
+
+      // Map
+      'map_view': 'Map View',
+      'my_location': 'My Location',
+      'on_map': 'businesses on map',
     },
     'fr': {
       // App General
@@ -359,6 +364,11 @@ class LocalizationService extends ChangeNotifier {
       'verification_rejected': 'Vérification refusée. Veuillez réessayer avec un document plus clair.',
       'not_verified_hint': 'Téléversez votre patente pour être vérifié',
       'verify_now': 'Vérifier',
+
+      // Map
+      'map_view': 'Vue carte',
+      'my_location': 'Ma position',
+      'on_map': 'entreprises sur la carte',
     },
     'ht': {
       // App General
@@ -519,6 +529,11 @@ class LocalizationService extends ChangeNotifier {
       'verification_rejected': 'Verifikasyon refize. Tanpri eseye ankò ak yon dokiman pi klè.',
       'not_verified_hint': 'Voye patant ou pou yo verifye ou',
       'verify_now': 'Verifye',
+
+      // Map
+      'map_view': 'Kat jeyografik',
+      'my_location': 'Pozisyon mwen',
+      'on_map': 'biznis sou kat la',
     },
   };
 }

@@ -12,6 +12,7 @@ import '../auth/login_screen.dart';
 import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
 import '../business/owner_dashboard_screen.dart';
+import '../map/map_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -230,6 +231,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
         actions: [
+          _AppBarAction(
+            icon: Icons.map_outlined,
+            tooltip: localization.t('map_view'),
+            onTap: () {
+              Navigator.push(
+                context,
+                FadeSlideRoute(
+                  page: MapScreen(
+                    businesses: _filteredBusinesses,
+                    userPosition: _userPosition,
+                  ),
+                ),
+              );
+            },
+          ),
           if (isBusinessOwner)
             _AppBarAction(
               icon: Icons.storefront_outlined,
