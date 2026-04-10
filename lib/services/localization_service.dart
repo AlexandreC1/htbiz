@@ -54,6 +54,8 @@ class LocalizationService extends ChangeNotifier {
       'password': 'Password',
       'confirm_password': 'Confirm Password',
       'continue_as_guest': 'Continue as Guest',
+      'continue_with_google': 'Continue with Google',
+      'or': 'or',
       'dont_have_account': "Don't have an account?",
       'logout': 'Logout',
 
@@ -122,6 +124,10 @@ class LocalizationService extends ChangeNotifier {
       'comment_optional': 'Comment (Optional)',
       'submit': 'Submit',
       'please_sign_in_to_review': 'Please sign in to add a review',
+      'post_anonymously': 'Post anonymously',
+      'anonymous': 'Anonymous',
+      'open_in_maps': 'Open in Google Maps',
+      'approximate_location': 'Approximate location',
 
       // Profile
       'profile': 'Profile',
@@ -140,6 +146,8 @@ class LocalizationService extends ChangeNotifier {
       'account_created': 'Account created! Please check your email to verify.',
       'error_loading_businesses': 'Error loading businesses',
       'error_loading_business': 'Error loading business',
+      'offline_showing_saved': "You're offline — showing saved data",
+      'retry': 'Retry',
 
       // Notifications
       'notifications': 'Notifications',
@@ -199,9 +207,27 @@ class LocalizationService extends ChangeNotifier {
       'verify_now': 'Verify',
 
       // Map
-      'map_view': 'Map View',
+      'map_view': 'Map',
       'my_location': 'My Location',
       'on_map': 'businesses on map',
+
+      // Navigation & Profile
+      'home': 'Home',
+      'account': 'Account',
+      'settings': 'Settings',
+      'full_name': 'Full Name',
+      'enter_full_name': 'Enter your full name',
+      'not_set': 'Not set',
+      'account_type': 'Account Type',
+      'business_owner': 'Business Owner',
+      'client': 'Client',
+      'switch': 'Switch',
+      'change_role': 'Change Account Type',
+      'switch_to_owner_desc': 'Switch to Business Owner? You will be able to list and manage businesses.',
+      'switch_to_client_desc': 'Switch to Client? You will no longer be able to add businesses.',
+      'confirm': 'Confirm',
+      'guest': 'Guest',
+      'sign_out': 'Sign Out',
     },
     'fr': {
       // App General
@@ -219,6 +245,8 @@ class LocalizationService extends ChangeNotifier {
       'password': 'Mot de passe',
       'confirm_password': 'Confirmer le mot de passe',
       'continue_as_guest': 'Continuer en tant qu\'invité',
+      'continue_with_google': 'Continuer avec Google',
+      'or': 'ou',
       'dont_have_account': "Vous n'avez pas de compte?",
       'logout': 'Se déconnecter',
 
@@ -289,6 +317,10 @@ class LocalizationService extends ChangeNotifier {
       'submit': 'Soumettre',
       'please_sign_in_to_review':
           'Veuillez vous connecter pour ajouter un avis',
+      'post_anonymously': 'Publier anonymement',
+      'anonymous': 'Anonyme',
+      'open_in_maps': 'Ouvrir dans Google Maps',
+      'approximate_location': 'Emplacement approximatif',
 
       // Profile
       'profile': 'Profil',
@@ -307,6 +339,8 @@ class LocalizationService extends ChangeNotifier {
       'account_created': 'Compte créé! Veuillez vérifier votre email.',
       'error_loading_businesses': 'Erreur lors du chargement des entreprises',
       'error_loading_business': 'Erreur lors du chargement de l\'entreprise',
+      'offline_showing_saved': 'Hors ligne — affichage des données enregistrées',
+      'retry': 'Réessayer',
 
       // Notifications
       'notifications': 'Notifications',
@@ -366,9 +400,27 @@ class LocalizationService extends ChangeNotifier {
       'verify_now': 'Vérifier',
 
       // Map
-      'map_view': 'Vue carte',
+      'map_view': 'Carte',
       'my_location': 'Ma position',
       'on_map': 'entreprises sur la carte',
+
+      // Navigation & Profile
+      'home': 'Accueil',
+      'account': 'Compte',
+      'settings': 'Param\u00e8tres',
+      'full_name': 'Nom complet',
+      'enter_full_name': 'Entrez votre nom complet',
+      'not_set': 'Non d\u00e9fini',
+      'account_type': 'Type de compte',
+      'business_owner': 'Propri\u00e9taire',
+      'client': 'Client',
+      'switch': 'Changer',
+      'change_role': 'Changer le type de compte',
+      'switch_to_owner_desc': 'Passer \u00e0 Propri\u00e9taire? Vous pourrez g\u00e9rer des entreprises.',
+      'switch_to_client_desc': 'Passer \u00e0 Client? Vous ne pourrez plus ajouter d\'entreprises.',
+      'confirm': 'Confirmer',
+      'guest': 'Invit\u00e9',
+      'sign_out': 'Se d\u00e9connecter',
     },
     'ht': {
       // App General
@@ -386,6 +438,8 @@ class LocalizationService extends ChangeNotifier {
       'password': 'Modpas',
       'confirm_password': 'Konfime modpas',
       'continue_as_guest': 'Kontinye tankou envite',
+      'continue_with_google': 'Kontinye ak Google',
+      'or': 'oswa',
       'dont_have_account': "Ou pa gen kont?",
       'logout': 'Dekonekte',
 
@@ -454,6 +508,10 @@ class LocalizationService extends ChangeNotifier {
       'comment_optional': 'Kòmantè (Opsyonèl)',
       'submit': 'Soumèt',
       'please_sign_in_to_review': 'Tanpri konekte pou ajoute yon reviw',
+      'post_anonymously': 'Pibliye anonim',
+      'anonymous': 'Anonim',
+      'open_in_maps': 'Ouvri nan Google Maps',
+      'approximate_location': 'Anplasman apwoksimatif',
 
       // Profile
       'profile': 'Profil',
@@ -472,6 +530,8 @@ class LocalizationService extends ChangeNotifier {
       'account_created': 'Kont kreye! Tanpri tcheke imèl ou.',
       'error_loading_businesses': 'Erè nan chajman biznis yo',
       'error_loading_business': 'Erè nan chajman biznis la',
+      'offline_showing_saved': 'Pa gen entènèt — n ap montre done ki sere yo',
+      'retry': 'Eseye ankò',
 
       // Notifications
       'notifications': 'Notifikasyon',
@@ -531,9 +591,27 @@ class LocalizationService extends ChangeNotifier {
       'verify_now': 'Verifye',
 
       // Map
-      'map_view': 'Kat jeyografik',
+      'map_view': 'Kat',
       'my_location': 'Pozisyon mwen',
       'on_map': 'biznis sou kat la',
+
+      // Navigation & Profile
+      'home': 'Lakay',
+      'account': 'Kont',
+      'settings': 'Param\u00e8t',
+      'full_name': 'Non konpl\u00e8',
+      'enter_full_name': 'Antre non konpl\u00e8 ou',
+      'not_set': 'Pa defini',
+      'account_type': 'Tip kont',
+      'business_owner': 'Propriyet\u00e8',
+      'client': 'Kliyan',
+      'switch': 'Chanje',
+      'change_role': 'Chanje tip kont',
+      'switch_to_owner_desc': 'Chanje an Propriyet\u00e8? Ou ap kapab jere biznis.',
+      'switch_to_client_desc': 'Chanje an Kliyan? Ou p ap kapab ajoute biznis ank\u00f2.',
+      'confirm': 'Konfime',
+      'guest': 'Envite',
+      'sign_out': 'Dekonekte',
     },
   };
 }

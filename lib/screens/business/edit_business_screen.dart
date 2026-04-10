@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
@@ -121,9 +122,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
-        );
+        AppToast.error(context, 'Error picking image: $e');
       }
     }
   }
@@ -178,7 +177,6 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
 
     final localization =
         Provider.of<LocalizationService>(context, listen: false);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
     try {
@@ -216,22 +214,12 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
       await _businessService.updateBusiness(widget.business.id, updates);
 
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(localization.t('business_updated_success')),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, localization.t('business_updated_success'));
         navigator.pop(true);
       }
     } catch (e) {
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('${localization.t('error')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, '${localization.t('error')}: $e');
       }
     } finally {
       if (mounted) {
@@ -476,8 +464,6 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                           ? null
                           : () async {
                               setState(() => _isGettingLocation = true);
-                              final scaffoldMessenger =
-                                  ScaffoldMessenger.of(context);
                               try {
                                 LocationPermission permission =
                                     await Geolocator.checkPermission();
@@ -489,11 +475,8 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                     permission ==
                                         LocationPermission.deniedForever) {
                                   if (mounted) {
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                          content: Text(localization
-                                              .t('location_unavailable'))),
-                                    );
+                                    AppToast.warning(context,
+                                        localization.t('location_unavailable'));
                                   }
                                   return;
                                 }
@@ -510,11 +493,8 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                 });
                               } catch (e) {
                                 if (mounted) {
-                                  scaffoldMessenger.showSnackBar(
-                                    SnackBar(
-                                        content: Text(localization
-                                            .t('location_unavailable'))),
-                                  );
+                                  AppToast.warning(context,
+                                      localization.t('location_unavailable'));
                                 }
                               } finally {
                                 if (mounted) {

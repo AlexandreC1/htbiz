@@ -4,26 +4,29 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
+import '../../widgets/offline_banner.dart';
+import '../../services/connectivity_service.dart';
 import '../../models/business_model.dart';
 import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
-import '../auth/login_screen.dart';
+import '../../widgets/htbiz_logo.dart';
 import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
-import '../business/owner_dashboard_screen.dart';
-import '../map/map_screen.dart';
+import '../main_shell.dart';
 import '../notifications/notifications_screen.dart';
-import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final MainShellState? shell;
+
+  const HomeScreen({super.key, this.shell});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final BusinessService _businessService = BusinessService();
   List<Business> _businesses = [];
   List<Business> _filteredBusinesses = [];
@@ -33,12 +36,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   UserProfile? _userProfile;
   Set<String> _favoriteIds = {};
   bool _showFavoritesOnly = false;
-  int _unreadNotifications = 0;
   bool _sortByDistance = false;
+  bool _isResolvingLocation = false;
   Position? _userPosition;
   Map<String, double> _distances = {};
 
   late AnimationController _listAnimController;
+
+  // Public getters for map screen
+  List<Business> get businesses => _businesses;
+  List<Business> get filteredBusinesses => _filteredBusinesses;
+  Position? get userPosition => _userPosition;
 
   @override
   void initState() {
@@ -49,11 +57,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     _loadBusinesses();
     _loadProfile();
-    _loadNotificationCount();
+    ConnectivityService.instance.addListener(_onConnectivityChanged);
+  }
+
+  void _onConnectivityChanged() {
+    // When the device comes back online, refresh from network so cached
+    // data is replaced with fresh server data.
+    if (!mounted) return;
+    if (ConnectivityService.instance.isOnline) {
+      _loadBusinesses();
+      _loadProfile();
+    }
   }
 
   @override
   void dispose() {
+    ConnectivityService.instance.removeListener(_onConnectivityChanged);
     _listAnimController.dispose();
     super.dispose();
   }
@@ -75,7 +94,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _enableLocationSorting() async {
+    if (_isResolvingLocation) return; // debounce repeat taps
+    setState(() => _isResolvingLocation = true);
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     try {
+      // Check that location services are enabled on the device first —
+      // getCurrentPosition() can otherwise hang indefinitely on some devices.
+      final servicesOn = await Geolocator.isLocationServiceEnabled();
+      if (!servicesOn) {
+        if (mounted) {
+          AppToast.warning(context, localization.t('location_unavailable'));
+        }
+        return;
+      }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -83,30 +115,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted) {
-          final localization =
-              Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(localization.t('location_unavailable'))),
-          );
+          AppToast.warning(context, localization.t('location_unavailable'));
         }
         return;
       }
+      // Hard timeout so the button always returns feedback even if the
+      // platform never answers (common cause of "unresponsive" button).
       final position = await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.medium),
-      );
+      ).timeout(const Duration(seconds: 8));
       _userPosition = position;
       _calculateDistances();
+      if (!mounted) return;
       setState(() => _sortByDistance = true);
       _filterBusinesses();
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        final localization =
-            Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localization.t('location_unavailable'))),
-        );
+        AppToast.warning(context, localization.t('location_unavailable'));
       }
+    } finally {
+      if (mounted) setState(() => _isResolvingLocation = false);
     }
   }
 
@@ -125,37 +154,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _loadNotificationCount() async {
-    final user = supabase.auth.currentUser;
-    if (user != null && !(user.isAnonymous)) {
-      final count =
-          await _businessService.getUnreadNotificationCount(user.id);
-      if (mounted) setState(() => _unreadNotifications = count);
-    }
-  }
-
   Future<void> _loadBusinesses() async {
     setState(() => _isLoading = true);
-    try {
-      final businesses = await _businessService.getAllBusinesses();
-      setState(() {
-        _businesses = businesses;
-        _filteredBusinesses = businesses;
-        _isLoading = false;
-      });
-      _listAnimController.forward(from: 0);
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        final localization =
-            Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('${localization.t('error_loading_businesses')}: $e')),
-        );
-      }
-    }
+    // BusinessService falls back to the local cache when offline, so we only
+    // need to handle a successful return here. The OfflineBanner surfaces the
+    // offline state to the user instead of an error toast.
+    final businesses = await _businessService.getAllBusinesses();
+    if (!mounted) return;
+    setState(() {
+      _businesses = businesses;
+      _filteredBusinesses = businesses;
+      _isLoading = false;
+    });
+    _listAnimController.forward(from: 0);
   }
 
   void _filterBusinesses() {
@@ -206,19 +217,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.storefront_rounded,
-                size: 18,
-                color: AppColors.primary,
-              ),
-            ),
+            const HTBizLogo(size: 32),
             const SizedBox(width: 10),
             Text(
               localization.t('app_name'),
@@ -231,97 +230,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
         actions: [
-          _AppBarAction(
-            icon: Icons.map_outlined,
-            tooltip: localization.t('map_view'),
-            onTap: () {
-              Navigator.push(
-                context,
-                FadeSlideRoute(
-                  page: MapScreen(
-                    businesses: _filteredBusinesses,
-                    userPosition: _userPosition,
-                  ),
-                ),
-              );
-            },
-          ),
-          if (isBusinessOwner)
-            _AppBarAction(
-              icon: Icons.storefront_outlined,
-              tooltip: localization.t('your_businesses'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  FadeSlideRoute(page: const OwnerDashboardScreen()),
-                ).then((_) {
-                  _loadBusinesses();
-                  _loadProfile();
-                });
-              },
-            ),
-          if (isLoggedIn)
-            Stack(
-              children: [
-                _AppBarAction(
-                  icon: Icons.notifications_outlined,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      FadeSlideRoute(page: const NotificationsScreen()),
-                    ).then((_) => _loadNotificationCount());
-                  },
-                ),
-                if (_unreadNotifications > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints:
-                          const BoxConstraints(minWidth: 18, minHeight: 18),
-                      child: Text(
-                        '$_unreadNotifications',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+          if (supabase.auth.currentUser != null &&
+              !(supabase.auth.currentUser!.isAnonymous))
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  FadeSlideRoute(
+                    page: NotificationsScreen(
+                      embedded: false,
+                      shell: widget.shell,
                     ),
                   ),
-              ],
+                ).then((_) => widget.shell?.refreshNotificationCount());
+              },
+              icon: widget.shell != null &&
+                      widget.shell!.mounted
+                  ? Badge(
+                      isLabelVisible: (widget.shell as MainShellState)
+                              .unreadNotifications >
+                          0,
+                      label: Text(
+                        '${(widget.shell as MainShellState).unreadNotifications}',
+                        style: const TextStyle(
+                            fontSize: 10, color: Colors.white),
+                      ),
+                      child: const Icon(Icons.notifications_outlined),
+                    )
+                  : const Icon(Icons.notifications_outlined),
             ),
-          _AppBarAction(
-            icon: Icons.person_outline_rounded,
-            onTap: () {
-              Navigator.push(
-                context,
-                FadeSlideRoute(page: const ProfileScreen()),
-              );
-            },
-          ),
-          _AppBarAction(
-            icon: Icons.logout_rounded,
-            onTap: () async {
-              await supabase.auth.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  FadeSlideRoute(page: const LoginScreen()),
-                );
-              }
-            },
-          ),
           const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -356,10 +298,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 // Distance sort chip
                 _FilterPill(
                   icon: Icons.near_me_rounded,
-                  label: localization.t('sort_by_distance'),
-                  selected: _sortByDistance,
+                  label: _isResolvingLocation
+                      ? '${localization.t('sort_by_distance')}…'
+                      : localization.t('sort_by_distance'),
+                  selected: _sortByDistance || _isResolvingLocation,
                   activeColor: AppColors.primary,
+                  loading: _isResolvingLocation,
                   onTap: () {
+                    if (_isResolvingLocation) return;
                     if (!_sortByDistance) {
                       _enableLocationSorting();
                     } else {
@@ -660,6 +606,7 @@ class _FilterPill extends StatelessWidget {
   final bool selected;
   final Color activeColor;
   final VoidCallback onTap;
+  final bool loading;
 
   const _FilterPill({
     required this.icon,
@@ -667,6 +614,7 @@ class _FilterPill extends StatelessWidget {
     required this.selected,
     required this.activeColor,
     required this.onTap,
+    this.loading = false,
   });
 
   @override
@@ -690,11 +638,20 @@ class _FilterPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? activeColor : Colors.grey[600],
-            ),
+            loading
+                ? SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(activeColor),
+                    ),
+                  )
+                : Icon(
+                    icon,
+                    size: 16,
+                    color: selected ? activeColor : Colors.grey[600],
+                  ),
             const SizedBox(width: 6),
             Text(
               label,
@@ -705,35 +662,6 @@ class _FilterPill extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- App bar action button ---
-
-class _AppBarAction extends StatelessWidget {
-  final IconData icon;
-  final String? tooltip;
-  final VoidCallback onTap;
-
-  const _AppBarAction({
-    required this.icon,
-    this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip ?? '',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(icon, size: 22),
         ),
       ),
     );

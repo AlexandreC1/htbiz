@@ -4,6 +4,7 @@
   import 'package:image_picker/image_picker.dart';
   import 'package:provider/provider.dart';
   import '../../main.dart';
+  import '../../widgets/app_toast.dart';
   import '../../models/business_model.dart';
   import '../../services/business_service.dart';
   import '../../services/localization_service.dart';
@@ -80,9 +81,7 @@
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error picking image: $e')),
-          );
+          AppToast.error(context, 'Error picking image: $e');
         }
       }
     }
@@ -138,9 +137,7 @@
             permission == LocationPermission.deniedForever) {
           if (mounted) {
             final loc = Provider.of<LocalizationService>(context, listen: false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(loc.t('location_unavailable'))),
-            );
+            AppToast.warning(context, loc.t('location_unavailable'));
           }
           return;
         }
@@ -155,9 +152,7 @@
       } catch (e) {
         if (mounted) {
           final loc = Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(loc.t('location_unavailable'))),
-          );
+          AppToast.warning(context, loc.t('location_unavailable'));
         }
       } finally {
         if (mounted) setState(() => _isGettingLocation = false);
@@ -171,7 +166,6 @@
 
       final localization =
           Provider.of<LocalizationService>(context, listen: false);
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
 
       try {
@@ -209,22 +203,12 @@
         await _businessService.createBusiness(business);
 
         if (mounted) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(localization.t('business_added_success')),
-              backgroundColor: Colors.green,
-            ),
-          );
+          AppToast.success(context, localization.t('business_added_success'));
           navigator.pop(true);
         }
       } catch (e) {
         if (mounted) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('${localization.t('error')}: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppToast.error(context, '${localization.t('error')}: $e');
         }
       } finally {
         if (mounted) {

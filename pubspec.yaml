@@ -35,15 +35,39 @@ dependencies:
   geolocator: ^13.0.2
   fl_chart: ^0.70.2
   google_maps_flutter: ^2.14.2
+  flutter_dotenv: ^6.0.0
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.0
+  image: ^4.8.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#00209F"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+
+flutter_native_splash:
+  color: "#0E3A5C"
+  image: assets/icon/app_icon.png
+  color_dark: "#0E3A5C"
+  image_dark: assets/icon/app_icon.png
+  android_12:
+    color: "#0E3A5C"
+    image: assets/icon/app_icon_foreground.png
+    color_dark: "#0E3A5C"
+    image_dark: assets/icon/app_icon_foreground.png
 
 flutter:
   uses-material-design: true
-  
-  # Uncomment this when you add assets
-  # assets:
-  #   - assets/images/
+
+  assets:
+    - .env
+    - assets/icon/app_icon.png

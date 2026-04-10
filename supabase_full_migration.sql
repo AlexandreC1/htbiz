@@ -19,6 +19,18 @@ ALTER TABLE businesses ADD COLUMN IF NOT EXISTS patent_doc_url TEXT;
 -- Reviews: verified visit flag
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_verified_visit BOOLEAN DEFAULT false;
 
+-- Reviews: user display name and email
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS user_email TEXT;
+
+-- Reviews: multiple images (replaces single image_url going forward; old column kept for backward compat)
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS image_urls TEXT[] DEFAULT '{}'::TEXT[];
+-- Backfill: move any existing single image_url into the array
+UPDATE reviews
+  SET image_urls = ARRAY[image_url]
+  WHERE image_url IS NOT NULL
+    AND (image_urls IS NULL OR array_length(image_urls, 1) IS NULL);
+
 -- =====================================================
 -- STEP 2: Create new tables
 -- =====================================================
@@ -265,7 +277,51 @@ CREATE TRIGGER trigger_notify_on_new_review
   EXECUTE FUNCTION notify_on_new_review();
 
 -- =====================================================
--- STEP 6: Storage — create private bucket for patents
+-- STEP 6: DB Trigger — auto-update business rating/total_reviews
+-- (runs on review insert, update, or delete so stats are always correct)
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_business_review_stats()
+RETURNS TRIGGER AS $$
+DECLARE
+  target_business_id UUID;
+  new_avg DOUBLE PRECISION;
+  new_count INTEGER;
+BEGIN
+  -- Determine which business to update
+  IF TG_OP = 'DELETE' THEN
+    target_business_id := OLD.business_id;
+  ELSE
+    target_business_id := NEW.business_id;
+  END IF;
+
+  -- Recalculate stats
+  SELECT COALESCE(AVG(rating), 0), COUNT(*)
+  INTO new_avg, new_count
+  FROM reviews
+  WHERE business_id = target_business_id;
+
+  -- Update the business record (SECURITY DEFINER bypasses RLS)
+  UPDATE businesses
+  SET rating = new_avg, total_reviews = new_count
+  WHERE id = target_business_id;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_update_business_review_stats ON reviews;
+CREATE TRIGGER trigger_update_business_review_stats
+  AFTER INSERT OR UPDATE OF rating OR DELETE ON reviews
+  FOR EACH ROW
+  EXECUTE FUNCTION update_business_review_stats();
+
+-- =====================================================
+-- STEP 7: Storage — create private bucket for patents
 -- =====================================================
 -- Run this via Supabase Dashboard > Storage > New Bucket:
 --   Name: htbiz_patents
@@ -277,7 +333,7 @@ VALUES ('htbiz_patents', 'htbiz_patents', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================
--- STEP 7: Storage RLS Policies
+-- STEP 8: Storage RLS Policies
 -- =====================================================
 
 -- ---- htbiz_images (public bucket) ----

@@ -4,7 +4,10 @@ class Review {
   final String userId;
   final int rating;
   final String? comment;
+  /// Legacy single image (still populated by the DB trigger/backfill for old rows).
   final String? imageUrl;
+  /// New: multiple images per review. Empty list if none.
+  final List<String> imageUrls;
   final String? ownerReply;
   final DateTime? ownerReplyAt;
   final DateTime createdAt;
@@ -24,6 +27,7 @@ class Review {
     required this.rating,
     this.comment,
     this.imageUrl,
+    this.imageUrls = const [],
     this.ownerReply,
     this.ownerReplyAt,
     required this.createdAt,
@@ -34,7 +38,20 @@ class Review {
     this.isLikedByMe = false,
   });
 
+  /// Returns the combined list of image URLs: new image_urls first, falling back
+  /// to the legacy image_url if the array is empty. Always safe to iterate.
+  List<String> get allImages {
+    if (imageUrls.isNotEmpty) return imageUrls;
+    if (imageUrl != null && imageUrl!.isNotEmpty) return [imageUrl!];
+    return const [];
+  }
+
   factory Review.fromJson(Map<String, dynamic> json) {
+    List<String> parsedImages = const [];
+    final rawImages = json['image_urls'];
+    if (rawImages is List) {
+      parsedImages = rawImages.whereType<String>().toList();
+    }
     return Review(
       id: json['id'] as String,
       businessId: json['business_id'] as String,
@@ -42,6 +59,7 @@ class Review {
       rating: json['rating'] as int,
       comment: json['comment'] as String?,
       imageUrl: json['image_url'] as String?,
+      imageUrls: parsedImages,
       ownerReply: json['owner_reply'] as String?,
       ownerReplyAt: json['owner_reply_at'] != null
           ? DateTime.parse(json['owner_reply_at'] as String)
@@ -59,8 +77,11 @@ class Review {
       'user_id': userId,
       'rating': rating,
       'comment': comment,
-      'image_url': imageUrl,
+      'image_url': imageUrls.isNotEmpty ? imageUrls.first : imageUrl,
+      'image_urls': imageUrls,
       'is_verified_visit': isVerifiedVisit,
+      'user_name': userName,
+      'user_email': userEmail,
     };
   }
 
@@ -71,6 +92,7 @@ class Review {
     int? rating,
     String? comment,
     String? imageUrl,
+    List<String>? imageUrls,
     String? ownerReply,
     DateTime? ownerReplyAt,
     DateTime? createdAt,
@@ -87,6 +109,7 @@ class Review {
       rating: rating ?? this.rating,
       comment: comment ?? this.comment,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       ownerReply: ownerReply ?? this.ownerReply,
       ownerReplyAt: ownerReplyAt ?? this.ownerReplyAt,
       createdAt: createdAt ?? this.createdAt,

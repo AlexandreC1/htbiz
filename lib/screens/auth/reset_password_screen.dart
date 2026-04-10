@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -60,12 +61,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               'Le nouveau mot de passe doit être différent de l\'ancien';
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, errorMessage);
       }
     }
   }

@@ -1,10 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_links/app_links.dart';
 import '../main.dart';
 import '../services/localization_service.dart';
 import 'auth/login_screen.dart';
-import 'home/home_screen.dart';
+import 'auth/reset_password_screen.dart';
+import 'main_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -90,6 +95,8 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
     );
 
+    // Remove native splash once Flutter UI is ready
+    FlutterNativeSplash.remove();
     _startSequence();
   }
 
@@ -121,10 +128,57 @@ class _SplashScreenState extends State<SplashScreen>
     _navigate();
   }
 
-  void _navigate() {
+  Future<void> _navigate() async {
+    // Check if the app was opened via a deep link (e.g. password reset)
+    try {
+      final appLinks = AppLinks();
+      final initialLink = await appLinks.getInitialLink();
+      if (initialLink != null &&
+          initialLink.scheme == 'io.supabase.htbiz') {
+        // Deep link detected — wait for Supabase to process the auth token
+        // Listen for the passwordRecovery event with a timeout
+        final completer = Completer<bool>();
+        late StreamSubscription<AuthState> sub;
+        sub = supabase.auth.onAuthStateChange.listen((data) {
+          if (data.event == AuthChangeEvent.passwordRecovery) {
+            if (!completer.isCompleted) completer.complete(true);
+            sub.cancel();
+          }
+        });
+
+        // Give Supabase up to 5 seconds to process the token
+        final isRecovery = await completer.future
+            .timeout(const Duration(seconds: 5), onTimeout: () => false);
+        sub.cancel();
+
+        if (isRecovery && mounted) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const ResetPasswordScreen(),
+              transitionDuration: const Duration(milliseconds: 500),
+              transitionsBuilder: (_, animation, __, child) {
+                return FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOut,
+                  ),
+                  child: child,
+                );
+              },
+            ),
+          );
+          return;
+        }
+      }
+    } catch (_) {
+      // If deep link check fails, continue with normal navigation
+    }
+
+    if (!mounted) return;
+
     final session = supabase.auth.currentSession;
     final destination =
-        session != null ? const HomeScreen() : const LoginScreen();
+        session != null ? const MainShell() : const LoginScreen();
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -175,9 +229,9 @@ class _SplashScreenState extends State<SplashScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF00897B), // Teal 600
-                Color(0xFF00695C), // Teal 800
-                Color(0xFF004D40), // Teal 900
+                Color(0xFF1B4F72), // Deep ocean blue (primary)
+                Color(0xFF0E3A5C), // Darker blue (primaryDark)
+                Color(0xFF00209F), // Haiti flag blue
               ],
               stops: [0.0, 0.5, 1.0],
             ),
@@ -223,25 +277,25 @@ class _SplashScreenState extends State<SplashScreen>
                         child: ScaleTransition(
                           scale: _logoScale,
                           child: Container(
-                            width: 110,
-                            height: 110,
+                            width: 120,
+                            height: 120,
                             decoration: BoxDecoration(
-                              color: Colors.white,
                               borderRadius: BorderRadius.circular(28),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      Colors.black.withValues(alpha: 0.2),
+                                  color: Colors.black.withValues(alpha: 0.25),
                                   blurRadius: 30,
                                   offset: const Offset(0, 12),
                                 ),
                               ],
                             ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.storefront_rounded,
-                                size: 56,
-                                color: AppColors.primary,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(28),
+                              child: Image.asset(
+                                'assets/icon/app_icon.png',
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),

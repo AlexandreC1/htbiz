@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
+import '../../widgets/htbiz_logo.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
-import '../home/home_screen.dart';
+import '../main_shell.dart';
 import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
@@ -24,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   int _failedAttempts = 0;
   DateTime? _lockoutUntil;
@@ -67,12 +72,7 @@ class _LoginScreenState extends State<LoginScreen>
     // Throttle after repeated failures
     if (_lockoutUntil != null && DateTime.now().isBefore(_lockoutUntil!)) {
       final seconds = _lockoutUntil!.difference(DateTime.now()).inSeconds;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Too many attempts. Try again in ${seconds}s'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppToast.warning(context, 'Too many attempts. Try again in ${seconds}s');
       return;
     }
 
@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen>
               FadeSlideRoute(
                 page: pendingRole == 'business_owner'
                     ? const OwnerDashboardScreen()
-                    : const HomeScreen(),
+                    : const MainShell(),
               ),
               (route) => false,
             );
@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen>
             );
           } else if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
-              FadeSlideRoute(page: const HomeScreen()),
+              FadeSlideRoute(page: const MainShell()),
               (route) => false,
             );
           }
@@ -146,12 +146,7 @@ class _LoginScreenState extends State<LoginScreen>
           errorMessage = 'Please verify your email first';
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, errorMessage);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -161,8 +156,57 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _signInAsGuest() async {
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        FadeSlideRoute(page: const HomeScreen()),
+        FadeSlideRoute(page: const MainShell()),
       );
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      const webClientId =
+          '85584991269-f04tu8dt4pn7vhn4ipijtaqocmb613qh.apps.googleusercontent.com';
+
+      final googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(serverClientId: webClientId);
+      final googleUser = await googleSignIn.authenticate();
+
+      final idToken = googleUser.authentication.idToken;
+
+      if (idToken == null) {
+        throw Exception('No ID token received from Google');
+      }
+
+      await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+
+      if (mounted) {
+        final user = supabase.auth.currentUser;
+        final profile = user != null
+            ? await BusinessService().getProfile(user.id)
+            : null;
+
+        if (profile == null && mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            FadeSlideRoute(page: const OnboardingScreen()),
+            (route) => false,
+          );
+        } else if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            FadeSlideRoute(page: const MainShell()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        AppToast.error(context, 'Google sign-in failed: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -190,21 +234,7 @@ class _LoginScreenState extends State<LoginScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // Header section
-                          Center(
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: const Icon(
-                                Icons.storefront_rounded,
-                                size: 40,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
+                          const Center(child: HTBizLogo(size: 84)),
                           const SizedBox(height: 24),
                           Text(
                             localization.t('welcome'),
@@ -361,6 +391,64 @@ class _LoginScreenState extends State<LoginScreen>
                                           localization.t('sign_in')),
                                     ),
                                   ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Divider
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16),
+                                child: Text(
+                                  localization.t('or'),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Google Sign In button
+                          SizedBox(
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed:
+                                  (_isLoading || _isGoogleLoading)
+                                      ? null
+                                      : _signInWithGoogle,
+                              icon: _isGoogleLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Image.network(
+                                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                                      width: 20,
+                                      height: 20,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(Icons.g_mobiledata,
+                                                  size: 24),
+                                    ),
+                              label: Text(
+                                localization.t('continue_with_google'),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.textPrimary,
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                            ),
                           ),
 
                           const SizedBox(height: 12),

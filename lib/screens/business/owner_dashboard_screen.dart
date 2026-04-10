@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
-import '../profile/profile_screen.dart';
+import '../main_shell.dart';
 import 'add_business_screen.dart';
 import 'analytics_dashboard_screen.dart';
 import 'business_detail_screen.dart';
@@ -132,12 +133,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       if (image == null) return;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localization.t('uploading_patent')),
-            duration: const Duration(seconds: 10),
-          ),
-        );
+        AppToast.show(context, localization.t('uploading_patent'),
+            duration: const Duration(seconds: 10));
       }
 
       final patentUrl =
@@ -145,24 +142,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       await _businessService.submitVerification(business.id, patentUrl);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localization.t('verification_submitted')),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, localization.t('verification_submitted'));
       }
       _loadData();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${localization.t('error')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, '${localization.t('error')}: $e');
       }
     }
   }
@@ -192,12 +177,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       await _businessService.deleteBusiness(business.id);
       _loadData();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localization.t('business_deleted_success')),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, localization.t('business_deleted_success'));
       }
     }
   }
@@ -209,6 +189,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(localization.t('your_businesses')),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
@@ -220,28 +201,51 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               ).then((_) => _loadData());
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: localization.t('profile'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                FadeSlideRoute(page: const ProfileScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: localization.t('sign_out'),
-            onPressed: () async {
-              await supabase.auth.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  FadeSlideRoute(page: const LoginScreen()),
-                  (route) => false,
-                );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'profile') {
+                final shellState = context.findAncestorStateOfType<MainShellState>();
+                if (shellState != null) {
+                  // Profile is always the last tab
+                  shellState.navigateToTab(shellState.tabCount - 1);
+                }
+              } else if (value == 'logout') {
+                await supabase.auth.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
               }
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    const Icon(Icons.person_outline, size: 20),
+                    const SizedBox(width: 12),
+                    Text(localization.t('profile')),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    const Icon(Icons.logout, size: 20, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Text(
+                      localization.t('logout'),
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

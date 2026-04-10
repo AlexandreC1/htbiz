@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../models/business_image_model.dart';
 import '../../models/review_model.dart';
@@ -80,10 +83,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       if (mounted) {
         final localization =
             Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('${localization.t('error_loading_business')}: $e')),
-        );
+        AppToast.error(
+            context, '${localization.t('error_loading_business')}: $e');
       }
     }
   }
@@ -101,29 +102,73 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch phone dialer: $e')),
-        );
+        AppToast.error(context, 'Could not launch phone dialer: $e');
       }
     }
   }
 
-  Future<void> _openMaps(String address) async {
-    final Uri url = Uri(
-      scheme: 'https',
-      host: 'www.google.com',
-      path: '/maps/search/',
-      queryParameters: {'api': '1', 'query': address},
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open maps')),
+  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
+
+  Future<LatLng?> _geocodeAddress(String address) async {
+    try {
+      final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
+        'address': address,
+        'key': _mapsApiKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      if (json['status'] == 'OK') {
+        final location =
+            json['results'][0]['geometry']['location'] as Map<String, dynamic>;
+        return LatLng(
+          (location['lat'] as num).toDouble(),
+          (location['lng'] as num).toDouble(),
         );
       }
+    } catch (_) {}
+    return null;
+  }
+
+  void _showInAppMap() async {
+    final business = _business;
+    if (business == null) return;
+
+    LatLng? position;
+
+    if (business.latitude != null && business.longitude != null) {
+      position = LatLng(business.latitude!, business.longitude!);
+    } else {
+      // Geocode the address to get coordinates
+      if (mounted) {
+        AppToast.show(context, 'Loading map...',
+            duration: const Duration(seconds: 2));
+      }
+      position = await _geocodeAddress(business.address);
     }
+
+    if (!mounted) return;
+
+    if (position == null) {
+      // Geocoding failed — default to Haiti center
+      position = const LatLng(18.9712, -72.2852);
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _BusinessMapScreen(
+          businessName: business.name,
+          address: business.address,
+          position: position!,
+          hasExactLocation:
+              business.latitude != null && business.longitude != null,
+        ),
+      ),
+    );
   }
 
   Future<void> _openWhatsApp(String number) async {
@@ -132,9 +177,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open WhatsApp')),
-      );
+      AppToast.error(context, 'Could not open WhatsApp');
     }
   }
 
@@ -144,18 +187,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open website')),
-      );
+      AppToast.error(context, 'Could not open website');
     }
   }
 
   Future<void> _toggleFavorite() async {
     final user = supabase.auth.currentUser;
     if (user == null || user.isAnonymous) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save favorites')),
-      );
+      AppToast.warning(context, 'Sign in to save favorites');
       return;
     }
     setState(() => _isTogglingFavorite = true);
@@ -168,9 +207,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       setState(() => _isFavorite = !_isFavorite);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppToast.error(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isTogglingFavorite = false);
@@ -249,16 +286,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         Provider.of<LocalizationService>(context, listen: false);
 
     if (user == null || user.isAnonymous) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localization.t('sign_in_to_check_in'))),
-      );
+      AppToast.warning(context, localization.t('sign_in_to_check_in'));
       return;
     }
 
     if (_hasCheckedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localization.t('already_checked_in'))),
-      );
+      AppToast.show(context, localization.t('already_checked_in'));
       return;
     }
 
@@ -266,21 +299,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       await _businessService.checkInToBusiness(widget.businessId);
       setState(() => _hasCheckedIn = true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localization.t('check_in_success')),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, localization.t('check_in_success'));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${localization.t('error')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, '${localization.t('error')}: $e');
       }
     }
   }
@@ -291,18 +314,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         Provider.of<LocalizationService>(context, listen: false);
 
     if (user == null || user.isAnonymous) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(localization.t('please_sign_in_to_review')),
-        ),
-      );
+      AppToast.warning(context, localization.t('please_sign_in_to_review'));
       return;
     }
 
     int selectedRating = 5;
     final commentController = TextEditingController();
-    File? selectedReviewImage;
+    final List<File> selectedReviewImages = [];
+    const int maxReviewImages = 5;
     bool isUploadingImage = false;
+    bool isAnonymous = false;
 
     showDialog(
       context: context,
@@ -372,87 +393,120 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   const SizedBox(height: 8),
 
                   // Photo Section
-                  const Text(
-                    'Add Photo (Optional)',
-                    style: TextStyle(
+                  Text(
+                    'Add Photos (Optional) — ${selectedReviewImages.length}/$maxReviewImages',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
 
-                  // Photo picker/display
-                  Container(
-                    width: double.infinity,
-                    height: selectedReviewImage != null ? 120 : 80,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[50],
-                    ),
-                    child: selectedReviewImage != null
-                        ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  selectedReviewImage!,
-                                  width: double.infinity,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setDialogState(() {
-                                      selectedReviewImage = null;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : InkWell(
-                            onTap: () => _showReviewImagePicker(setDialogState,
-                                (File? image) {
-                              setDialogState(() {
-                                selectedReviewImage = image;
-                              });
-                            }),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  size: 32,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Tap to add photo',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                  // Multi-photo picker row
+                  SizedBox(
+                    height: 90,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: selectedReviewImages.length +
+                          (selectedReviewImages.length < maxReviewImages ? 1 : 0),
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        // Trailing add-button tile
+                        if (index == selectedReviewImages.length) {
+                          return InkWell(
+                            onTap: () => _showReviewImagePicker(
+                              setDialogState,
+                              (File? image) {
+                                if (image == null) return;
+                                setDialogState(() {
+                                  selectedReviewImages.add(image);
+                                });
+                              },
                             ),
-                          ),
+                            child: Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                border: Border.all(
+                                    color: Colors.grey[300]!, width: 1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined,
+                                      size: 28, color: Colors.grey[500]),
+                                  const SizedBox(height: 2),
+                                  Text('Add',
+                                      style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        final file = selectedReviewImages[index];
+                        return Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                file,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    selectedReviewImages.removeAt(index);
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Anonymous toggle
+                  Row(
+                    children: [
+                      Switch(
+                        value: isAnonymous,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            isAnonymous = value;
+                          });
+                        },
+                        activeColor: Colors.teal,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          localization.t('post_anonymously'),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 4),
@@ -470,74 +524,62 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               onPressed: (_isSubmittingReview || isUploadingImage)
                   ? null
                   : () async {
+                      final commentText = commentController.text.trim();
+                      final rating = selectedRating;
+                      final reviewImages = List<File>.from(selectedReviewImages);
+                      final anonymous = isAnonymous;
+
                       setDialogState(() => isUploadingImage = true);
                       setState(() => _isSubmittingReview = true);
                       Navigator.pop(context);
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                       try {
-                        String? reviewImageUrl;
+                        // Upload all selected review images in parallel
+                        final List<String> reviewImageUrls = reviewImages.isEmpty
+                            ? const []
+                            : await _businessService
+                                .uploadReviewImages(reviewImages);
 
-                        // Upload review image if selected
-                        if (selectedReviewImage != null) {
-                          reviewImageUrl = await _businessService
-                              .uploadReviewImage(selectedReviewImage!);
+                        // Get user display name from profile
+                        String displayName = localization.t('anonymous');
+                        if (!anonymous) {
+                          final profile =
+                              await _businessService.getProfile(user.id);
+                          displayName = profile?.fullName ??
+                              user.email ??
+                              localization.t('anonymous');
                         }
 
                         final review = Review(
                           id: '',
                           businessId: widget.businessId,
                           userId: user.id,
-                          rating: selectedRating,
-                          comment: commentController.text.trim().isNotEmpty
-                              ? commentController.text.trim()
+                          rating: rating,
+                          comment: commentText.isNotEmpty
+                              ? commentText
                               : null,
                           createdAt: DateTime.now(),
-                          userEmail: user.email ?? 'Anonymous User',
-                          imageUrl: reviewImageUrl,
+                          userName: displayName,
+                          userEmail: user.email,
+                          imageUrls: reviewImageUrls,
                           isVerifiedVisit: _hasCheckedIn,
                         );
 
                         await _businessService.addReview(review);
 
-                        final allReviews = await _businessService
-                            .getBusinessReviews(widget.businessId);
-                        final avgRating = allReviews.isEmpty
-                            ? 0.0
-                            : allReviews
-                                    .map((r) => r.rating)
-                                    .reduce((a, b) => a + b) /
-                                allReviews.length;
-
-                        await _businessService.updateBusiness(
-                          widget.businessId,
-                          {
-                            'rating': avgRating,
-                            'total_reviews': allReviews.length,
-                          },
-                        );
-
+                        // Stats are updated by DB trigger automatically
                         await _loadBusinessDetails();
 
-                        // Notification is created automatically by DB trigger
-
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content:
-                                  Text(localization.t('review_added_success')),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                        final rootCtx = navigatorKey.currentContext;
+                        if (mounted && rootCtx != null) {
+                          AppToast.success(rootCtx,
+                              localization.t('review_added_success'));
                         }
                       } catch (e) {
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text('${localization.t('error')}: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        final rootCtx = navigatorKey.currentContext;
+                        if (mounted && rootCtx != null) {
+                          AppToast.error(
+                              rootCtx, '${localization.t('error')}: $e');
                         }
                       } finally {
                         setState(() => _isSubmittingReview = false);
@@ -569,7 +611,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               title: const Text('Choose from Gallery'),
               onTap: () async {
                 Navigator.pop(context);
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   final XFile? image = await ImagePicker().pickImage(
                     source: ImageSource.gallery,
@@ -581,10 +622,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('Error picking image: $e')),
-                    );
+                  final rootCtx = navigatorKey.currentContext;
+                  if (mounted && rootCtx != null) {
+                    AppToast.error(rootCtx, 'Error picking image: $e');
                   }
                 }
               },
@@ -594,7 +634,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               title: const Text('Take Photo'),
               onTap: () async {
                 Navigator.pop(context);
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   final XFile? image = await ImagePicker().pickImage(
                     source: ImageSource.camera,
@@ -606,10 +645,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
-                  if (mounted) {
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('Error taking photo: $e')),
-                    );
+                  final rootCtx = navigatorKey.currentContext;
+                  if (mounted && rootCtx != null) {
+                    AppToast.error(rootCtx, 'Error taking photo: $e');
                   }
                 }
               },
@@ -637,24 +675,21 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
               final navigator = Navigator.of(context);
               try {
                 await _businessService.deleteBusiness(widget.businessId);
                 if (mounted) {
                   navigator.pop(true);
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(localization.t('business_deleted_success')),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  final rootCtx = navigatorKey.currentContext;
+                  if (rootCtx != null) {
+                    AppToast.success(rootCtx,
+                        localization.t('business_deleted_success'));
+                  }
                 }
               } catch (e) {
-                if (mounted) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('${localization.t('error')}: $e')),
-                  );
+                final rootCtx = navigatorKey.currentContext;
+                if (mounted && rootCtx != null) {
+                  AppToast.error(rootCtx, '${localization.t('error')}: $e');
                 }
               }
             },
@@ -842,11 +877,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       setState(() => _galleryImages.add(newImage));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error uploading photo: $e'),
-              backgroundColor: Colors.red),
-        );
+        AppToast.error(context, 'Error uploading photo: $e');
       }
     } finally {
       if (mounted) setState(() => _isAddingPhoto = false);
@@ -879,11 +910,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         setState(() => _galleryImages.removeWhere((img) => img.id == image.id));
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Error deleting photo: $e'),
-                backgroundColor: Colors.red),
-          );
+          AppToast.error(context, 'Error deleting photo: $e');
         }
       }
     }
@@ -1127,7 +1154,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
                             // Address
                             InkWell(
-                              onTap: () => _openMaps(_business!.address),
+                              onTap: _showInAppMap,
                               child: Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 8),
@@ -1142,7 +1169,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                         style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
-                                    const Icon(Icons.open_in_new, size: 20),
+                                    const Icon(Icons.map_outlined,
+                                        size: 20, color: Colors.teal),
                                   ],
                                 ),
                               ),
@@ -1385,9 +1413,7 @@ class _ReviewCardState extends State<_ReviewCard> {
         Provider.of<LocalizationService>(context, listen: false);
 
     if (user == null || user.isAnonymous) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(localization.t('sign_in_to_like'))),
-      );
+      AppToast.warning(context, localization.t('sign_in_to_like'));
       return;
     }
 
@@ -1433,7 +1459,9 @@ class _ReviewCardState extends State<_ReviewCard> {
                 CircleAvatar(
                   backgroundColor: Colors.teal,
                   child: Text(
-                    review.userEmail?.substring(0, 1).toUpperCase() ?? 'U',
+                    (review.userName ?? review.userEmail ?? 'A')
+                        .substring(0, 1)
+                        .toUpperCase(),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -1446,7 +1474,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                         children: [
                           Flexible(
                             child: Text(
-                              review.userEmail ?? 'Anonymous',
+                              review.userName ?? review.userEmail ?? 'Anonymous',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1524,41 +1552,48 @@ class _ReviewCardState extends State<_ReviewCard> {
               ),
             ],
 
-            // Review image
-            if (review.imageUrl != null && review.imageUrl!.isNotEmpty) ...[
+            // Review images (supports multiple)
+            if (review.allImages.isNotEmpty) ...[
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => _showFullImageDialog(context, review.imageUrl!),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    child: Image.network(
-                      review.imageUrl!,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: CircularProgressIndicator(),
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: review.allImages.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final url = review.allImages[i];
+                    return GestureDetector(
+                      onTap: () => _showFullImageDialog(context, url),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          url,
+                          width: 110,
+                          height: 110,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (c, child, p) {
+                            if (p == null) return child;
+                            return Container(
+                              width: 110,
+                              height: 110,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2)),
+                            );
+                          },
+                          errorBuilder: (c, e, s) => Container(
+                            width: 110,
+                            height: 110,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.broken_image,
+                                color: Colors.grey, size: 32),
                           ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: Icon(Icons.broken_image,
-                                color: Colors.grey, size: 40),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -1726,5 +1761,120 @@ class _ReviewCardState extends State<_ReviewCard> {
     } else {
       return '${(difference.inDays / 365).floor()} ${localization.t('years_ago')}';
     }
+  }
+}
+
+// ============================================================
+// Full-screen in-app map for viewing business location
+// ============================================================
+
+class _BusinessMapScreen extends StatelessWidget {
+  final String businessName;
+  final String address;
+  final LatLng position;
+  final bool hasExactLocation;
+
+  const _BusinessMapScreen({
+    required this.businessName,
+    required this.address,
+    required this.position,
+    required this.hasExactLocation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          businessName,
+          style: const TextStyle(fontSize: 18),
+          overflow: TextOverflow.ellipsis,
+        ),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: position,
+              zoom: hasExactLocation ? 16 : 12,
+            ),
+            markers: {
+              Marker(
+                markerId: const MarkerId('business'),
+                position: position,
+                infoWindow: InfoWindow(
+                  title: businessName,
+                  snippet: address,
+                ),
+              ),
+            },
+            zoomControlsEnabled: true,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
+            mapToolbarEnabled: false,
+          ),
+          // Address bar at the bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!hasExactLocation)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 16, color: Colors.orange[700]),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              Provider.of<LocalizationService>(context,
+                                      listen: false)
+                                  .t('approximate_location'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.teal),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          address,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

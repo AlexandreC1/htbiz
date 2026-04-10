@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
+import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../main_shell.dart';
 import 'onboarding_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -18,6 +23,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -27,6 +33,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      const webClientId =
+          '85584991269-f04tu8dt4pn7vhn4ipijtaqocmb613qh.apps.googleusercontent.com';
+
+      final googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(serverClientId: webClientId);
+      final googleUser = await googleSignIn.authenticate();
+
+      final idToken = googleUser.authentication.idToken;
+
+      if (idToken == null) {
+        throw Exception('No ID token received from Google');
+      }
+
+      await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+
+      if (mounted) {
+        final user = supabase.auth.currentUser;
+        final profile = user != null
+            ? await BusinessService().getProfile(user.id)
+            : null;
+
+        if (profile == null && mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            FadeSlideRoute(page: const OnboardingScreen()),
+            (route) => false,
+          );
+        } else if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            FadeSlideRoute(page: const MainShell()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        AppToast.error(context, 'Google sign-up failed: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   Future<void> _signUp() async {
@@ -48,12 +103,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, error.toString());
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -88,13 +138,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           width: 72,
                           height: 72,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
                             Icons.person_add_outlined,
                             size: 36,
-                            color: AppColors.primary,
+                            color: AppColors.accent,
                           ),
                         ),
                       ),
@@ -244,6 +294,63 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       localization.t('create_account')),
                                 ),
                               ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Divider
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              localization.t('or'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Google Sign Up button
+                      SizedBox(
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed: (_isLoading || _isGoogleLoading)
+                              ? null
+                              : _signUpWithGoogle,
+                          icon: _isGoogleLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Image.network(
+                                  'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                                  width: 20,
+                                  height: 20,
+                                  errorBuilder:
+                                      (context, error, stackTrace) =>
+                                          const Icon(Icons.g_mobiledata,
+                                              size: 24),
+                                ),
+                          label: Text(
+                            localization.t('continue_with_google'),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            side: BorderSide(color: Colors.grey.shade300),
+                          ),
+                        ),
                       ),
 
                       const Spacer(),

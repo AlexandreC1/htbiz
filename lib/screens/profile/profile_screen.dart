@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
 import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../auth/login_screen.dart';
-import '../business/owner_dashboard_screen.dart';
+import '../main_shell.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final MainShellState? shell;
+  const ProfileScreen({super.key, this.shell});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -22,28 +25,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile? _profile;
   bool _isLoading = true;
   bool _isSaving = false;
-  bool _hasChanges = false;
+  bool _isEditingName = false;
   File? _selectedAvatar;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
-    _nameController.addListener(_onNameChanged);
-  }
-
-  void _onNameChanged() {
-    final newName = _nameController.text.trim();
-    final savedName = _profile?.fullName ?? '';
-    final changed = newName != savedName;
-    if (changed != _hasChanges && _selectedAvatar == null) {
-      setState(() => _hasChanges = changed);
-    }
   }
 
   @override
   void dispose() {
-    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     super.dispose();
   }
@@ -57,7 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = profile;
         _nameController.text = profile?.fullName ?? '';
         _isLoading = false;
-        _hasChanges = false;
+        _isEditingName = false;
       });
     } else {
       setState(() => _isLoading = false);
@@ -84,10 +76,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   imageQuality: 85,
                 );
                 if (image != null) {
-                  setState(() {
-                    _selectedAvatar = File(image.path);
-                    _hasChanges = true;
-                  });
+                  setState(() => _selectedAvatar = File(image.path));
+                  _saveAvatar();
                 }
               },
             ),
@@ -103,10 +93,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   imageQuality: 85,
                 );
                 if (image != null) {
-                  setState(() {
-                    _selectedAvatar = File(image.path);
-                    _hasChanges = true;
-                  });
+                  setState(() => _selectedAvatar = File(image.path));
+                  _saveAvatar();
                 }
               },
             ),
@@ -116,40 +104,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _saveProfile() async {
+  Future<void> _saveAvatar() async {
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null || _selectedAvatar == null) return;
     setState(() => _isSaving = true);
     try {
-      String? avatarUrl = _profile?.avatarUrl;
-      if (_selectedAvatar != null) {
-        avatarUrl = await _businessService.uploadAvatarImage(_selectedAvatar!);
-      }
+      final avatarUrl =
+          await _businessService.uploadAvatarImage(_selectedAvatar!);
       await _businessService.updateProfile(
         userId: user.id,
         email: user.email ?? '',
-        fullName: _nameController.text.trim(),
+        fullName: _profile?.fullName,
         avatarUrl: avatarUrl,
         role: _profile?.role,
       );
-      setState(() {
-        _selectedAvatar = null;
-        _hasChanges = false;
-      });
+      setState(() => _selectedAvatar = null);
       await _loadProfile();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success(context, 'Photo updated');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        AppToast.error(context, 'Error: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveName() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    final newName = _nameController.text.trim();
+    if (newName.isEmpty) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await _businessService.updateProfile(
+        userId: user.id,
+        email: user.email ?? '',
+        fullName: newName,
+        role: _profile?.role,
+      );
+      await _loadProfile();
+      widget.shell?.refreshProfile();
+      if (mounted) {
+        AppToast.success(context, 'Name updated');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.error(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -162,24 +166,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final currentRole = _profile?.role ?? 'client';
     final newRole =
         currentRole == 'business_owner' ? 'client' : 'business_owner';
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Change Role'),
+        title: Text(localization.t('change_role')),
         content: Text(
           newRole == 'business_owner'
-              ? 'Switch to Business Owner? You will be able to list and manage businesses.'
-              : 'Switch to Client? You will no longer be able to add businesses.',
+              ? localization.t('switch_to_owner_desc')
+              : localization.t('switch_to_client_desc'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(localization.t('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
+            child: Text(localization.t('confirm')),
           ),
         ],
       ),
@@ -194,19 +200,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           role: newRole,
         );
         await _loadProfile();
-
-        // Navigate to owner dashboard when switching to business owner
-        if (newRole == 'business_owner' && mounted) {
-          Navigator.push(
-            context,
-            FadeSlideRoute(page: const OwnerDashboardScreen()),
-          );
-        }
+        widget.shell?.refreshProfile();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-          );
+          AppToast.error(context, 'Error: $e');
         }
       } finally {
         if (mounted) setState(() => _isSaving = false);
@@ -223,226 +220,376 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(localization.t('profile')),
-        actions: [
-          if (!isGuest && !_isLoading && (_hasChanges || _isSaving))
-            TextButton(
-              onPressed: _isSaving ? null : _saveProfile,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-            ),
-        ],
+        automaticallyImplyLeading: false,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
+              padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
+                // Profile header card
+                _buildProfileHeader(user, isGuest, localization),
+
                 const SizedBox(height: 24),
 
-                // Avatar
-                Center(
-                  child: Stack(
-                    children: [
-                      GestureDetector(
-                        onTap: isGuest ? null : _pickAvatar,
-                        child: CircleAvatar(
-                          radius: 56,
-                          backgroundColor: Colors.teal,
-                          backgroundImage: _selectedAvatar != null
-                              ? FileImage(_selectedAvatar!)
-                              : (_profile?.avatarUrl != null
-                                  ? NetworkImage(_profile!.avatarUrl!)
-                                      as ImageProvider
-                                  : null),
-                          child: (_selectedAvatar == null &&
-                                  _profile?.avatarUrl == null)
-                              ? Text(
-                                  (user?.email?.substring(0, 1) ?? 'G')
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                      if (!isGuest)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _pickAvatar,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primaryDark,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Email
-                Center(
-                  child: Text(
-                    user?.email ?? localization.t('continue_as_guest'),
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-
-                // Role badge
-                if (!isGuest && _profile != null) ...[
-                  const SizedBox(height: 8),
-                  Center(
-                    child: GestureDetector(
-                      onTap: _changeRole,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _profile!.isBusinessOwner
-                              ? Colors.teal[50]
-                              : Colors.blue[50],
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _profile!.isBusinessOwner
-                                ? Colors.teal
-                                : Colors.blue,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _profile!.isBusinessOwner
-                                  ? Icons.store
-                                  : Icons.person,
-                              size: 16,
-                              color: _profile!.isBusinessOwner
-                                  ? Colors.teal[700]
-                                  : Colors.blue[700],
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _profile!.isBusinessOwner
-                                  ? 'Business Owner'
-                                  : 'Client',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: _profile!.isBusinessOwner
-                                    ? Colors.teal[700]
-                                    : Colors.blue[700],
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.edit,
-                              size: 12,
-                              color: _profile!.isBusinessOwner
-                                  ? Colors.teal[400]
-                                  : Colors.blue[400],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-                const Divider(),
-
-                // Full name field (only for authenticated users)
+                // Account section
                 if (!isGuest) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        hintText: 'Enter your full name',
-                      ),
-                    ),
-                  ),
-                  const Divider(),
+                  _buildSectionHeader(localization.t('account')),
+                  _buildNameTile(localization),
+                  _buildRoleTile(localization),
+                  const SizedBox(height: 16),
                 ],
 
-                // Owner dashboard (business owners only)
-                if (!isGuest && (_profile?.isBusinessOwner ?? false)) ...[
-                  ListTile(
-                    leading: const Icon(Icons.storefront, color: Colors.teal),
-                    title: Text(localization.t('your_businesses')),
-                    subtitle: Text(localization.t('manage_businesses')),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        FadeSlideRoute(
-                                page: const OwnerDashboardScreen()),
-                      );
-                    },
-                  ),
-                  const Divider(),
-                ],
+                // Settings section
+                _buildSectionHeader(localization.t('settings')),
+                _buildLanguageTile(localization),
 
-                // Language Selection
-                ListTile(
-                  leading: const Icon(Icons.language, color: Colors.teal),
-                  title: Text(localization.t('language')),
-                  subtitle: Text(_getLanguageName(localization.currentLanguage)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showLanguageDialog(context),
-                ),
-
-                const Divider(),
+                const SizedBox(height: 16),
 
                 // Logout
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: Text(
-                    localization.t('logout'),
-                    style: const TextStyle(color: Colors.red),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      await supabase.auth.signOut();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          FadeSlideRoute(page: const LoginScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    label: Text(
+                      localization.t('logout'),
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
                   ),
-                  onTap: () async {
-                    await supabase.auth.signOut();
-                    if (context.mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        FadeSlideRoute(page: const LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
                 ),
+
+                const SizedBox(height: 32),
               ],
             ),
+    );
+  }
+
+  Widget _buildProfileHeader(
+      dynamic user, bool isGuest, LocalizationService localization) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Avatar
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                backgroundImage: _selectedAvatar != null
+                    ? FileImage(_selectedAvatar!)
+                    : (_profile?.avatarUrl != null
+                        ? NetworkImage(_profile!.avatarUrl!) as ImageProvider
+                        : null),
+                child:
+                    (_selectedAvatar == null && _profile?.avatarUrl == null)
+                        ? Text(
+                            (_profile?.fullName?.substring(0, 1) ??
+                                    user?.email?.substring(0, 1) ??
+                                    'G')
+                                .toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 36,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+              ),
+              if (!isGuest)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _isSaving ? null : _pickAvatar,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.camera_alt,
+                        color: AppColors.primary,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Name
+          Text(
+            _profile?.fullName ?? user?.email ?? localization.t('guest'),
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          if (user?.email != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              user!.email!,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+
+          if (!isGuest && _profile != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _profile!.isBusinessOwner ? Icons.store : Icons.person,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _profile!.isBusinessOwner
+                        ? localization.t('business_owner')
+                        : localization.t('client'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (_isSaving) ...[
+            const SizedBox(height: 12),
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey[500],
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNameTile(LocalizationService localization) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: _isEditingName
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.person_outline, color: AppColors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _nameController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: localization.t('enter_full_name'),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                      ),
+                      style: GoogleFonts.poppins(fontSize: 15),
+                      maxLength: 100,
+                      buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                      onSubmitted: (_) {
+                        _saveName();
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _isEditingName = false;
+                        _nameController.text = _profile?.fullName ?? '';
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(Icons.check, size: 20, color: AppColors.primary),
+                    onPressed: _saveName,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            )
+          : ListTile(
+              leading: const Icon(Icons.person_outline, color: AppColors.primary),
+              title: Text(
+                localization.t('full_name'),
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+              subtitle: Text(
+                _profile?.fullName ?? localization.t('not_set'),
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                onPressed: () => setState(() => _isEditingName = true),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildRoleTile(LocalizationService localization) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: Icon(
+          _profile?.isBusinessOwner == true ? Icons.store : Icons.person,
+          color: AppColors.primary,
+        ),
+        title: Text(
+          localization.t('account_type'),
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.grey[600],
+          ),
+        ),
+        subtitle: Text(
+          _profile?.isBusinessOwner == true
+              ? localization.t('business_owner')
+              : localization.t('client'),
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: TextButton(
+          onPressed: _changeRole,
+          child: Text(
+            localization.t('switch'),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile(LocalizationService localization) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.language, color: AppColors.primary),
+        title: Text(
+          localization.t('language'),
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: Colors.grey[600],
+          ),
+        ),
+        subtitle: Text(
+          _getLanguageName(localization.currentLanguage),
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () => _showLanguageDialog(context),
+      ),
     );
   }
 
@@ -451,9 +598,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'en':
         return 'English';
       case 'fr':
-        return 'Français';
+        return 'Fran\u00e7ais';
       case 'ht':
-        return 'Kreyòl Ayisyen';
+        return 'Krey\u00f2l Ayisyen';
       default:
         return 'English';
     }
@@ -472,7 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _LanguageOption(
               code: 'en',
               name: 'English',
-              flag: '🇺🇸',
+              flag: '\ud83c\uddfa\ud83c\uddf8',
               currentLanguage: localization.currentLanguage,
               onTap: () {
                 localization.setLanguage('en');
@@ -481,8 +628,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _LanguageOption(
               code: 'fr',
-              name: 'Français',
-              flag: '🇫🇷',
+              name: 'Fran\u00e7ais',
+              flag: '\ud83c\uddeb\ud83c\uddf7',
               currentLanguage: localization.currentLanguage,
               onTap: () {
                 localization.setLanguage('fr');
@@ -491,8 +638,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _LanguageOption(
               code: 'ht',
-              name: 'Kreyòl Ayisyen',
-              flag: '🇭🇹',
+              name: 'Krey\u00f2l Ayisyen',
+              flag: '\ud83c\udded\ud83c\uddf9',
               currentLanguage: localization.currentLanguage,
               onTap: () {
                 localization.setLanguage('ht');
@@ -533,8 +680,9 @@ class _LanguageOption extends StatelessWidget {
           color: isSelected ? Colors.teal : null,
         ),
       ),
-      trailing:
-          isSelected ? const Icon(Icons.check_circle, color: Colors.teal) : null,
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: Colors.teal)
+          : null,
       onTap: onTap,
     );
   }

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
+import '../../widgets/app_toast.dart';
 import '../../services/business_service.dart';
 import '../business/owner_dashboard_screen.dart';
-import '../home/home_screen.dart';
+import '../main_shell.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             FadeSlideRoute(
               page: role == 'business_owner'
                   ? const OwnerDashboardScreen()
-                  : const HomeScreen(),
+                  : const MainShell(),
             ),
             (route) => false,
           );
@@ -46,13 +47,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         await prefs.setString('pending_role', role);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Please check your email and confirm your account, then log in.'),
-              backgroundColor: Colors.teal,
-              duration: Duration(seconds: 5),
-            ),
+          AppToast.show(
+            context,
+            'Please check your email and confirm your account, then log in.',
+            type: AppToastType.info,
+            duration: const Duration(seconds: 5),
           );
           Navigator.of(context).pushAndRemoveUntil(
             FadeSlideRoute(page: const LoginScreen()),
@@ -62,9 +61,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        AppToast.error(context, 'Error: $e');
         setState(() => _isLoading = false);
       }
     }

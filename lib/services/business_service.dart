@@ -5,11 +5,14 @@ import '../models/notification_model.dart';
 import '../models/review_model.dart';
 import '../models/user_profile.dart';
 import '../main.dart';
+import 'cache_service.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 
 class BusinessService {
-  // Get all businesses
+  final _cache = CacheService.instance;
+
+  // Get all businesses (cache-first fallback when offline)
   Future<List<Business>> getAllBusinesses() async {
     try {
       final response = await supabase
@@ -17,9 +20,16 @@ class BusinessService {
           .select()
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) => Business.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to load businesses: $e');
+      final list = (response as List).cast<Map<String, dynamic>>();
+      await _cache.save('all_businesses', list);
+      return list.map((json) => Business.fromJson(json)).toList();
+    } catch (_) {
+      // Network/offline failure — fall back to cached data if available.
+      final cached = await _cache.readList('all_businesses');
+      if (cached != null) {
+        return cached.map((j) => Business.fromJson(j)).toList();
+      }
+      return [];
     }
   }
 
@@ -53,15 +63,23 @@ class BusinessService {
     }
   }
 
-  // Get single business by ID
+  // Get single business by ID (cache-first fallback when offline)
   Future<Business?> getBusinessById(String id) async {
     try {
       final response =
           await supabase.from('businesses').select().eq('id', id).single();
-
+      await _cache.save('business_$id', response);
       return Business.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to load business: $e');
+    } catch (_) {
+      final cached = await _cache.readMap('business_$id');
+      if (cached != null) return Business.fromJson(cached);
+      // Try to find it in the cached business list as a last resort
+      final list = await _cache.readList('all_businesses');
+      if (list != null) {
+        final match = list.where((b) => b['id'] == id).firstOrNull;
+        if (match != null) return Business.fromJson(match);
+      }
+      return null;
     }
   }
 
@@ -110,7 +128,7 @@ class BusinessService {
     }
   }
 
-  // Get reviews for a business
+  // Get reviews for a business (cache-first fallback when offline)
   Future<List<Review>> getBusinessReviews(String businessId) async {
     try {
       final response = await supabase
@@ -119,9 +137,15 @@ class BusinessService {
           .eq('business_id', businessId)
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) => Review.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to load reviews: $e');
+      final list = (response as List).cast<Map<String, dynamic>>();
+      await _cache.save('reviews_$businessId', list);
+      return list.map((json) => Review.fromJson(json)).toList();
+    } catch (_) {
+      final cached = await _cache.readList('reviews_$businessId');
+      if (cached != null) {
+        return cached.map((j) => Review.fromJson(j)).toList();
+      }
+      return [];
     }
   }
 
@@ -161,6 +185,13 @@ class BusinessService {
     }
   }
 
+  // Upload multiple review images in parallel. Returns public URLs in the same order.
+  Future<List<String>> uploadReviewImages(List<File> files) async {
+    if (files.isEmpty) return const [];
+    final results = await Future.wait(files.map(uploadReviewImage));
+    return results;
+  }
+
   // Upload review image to Supabase Storage
   Future<String> uploadReviewImage(File imageFile) async {
     try {
@@ -186,8 +217,11 @@ class BusinessService {
           .eq('id', userId)
           .maybeSingle();
       if (response == null) return null;
+      await _cache.save('profile_$userId', response);
       return UserProfile.fromJson(response);
-    } catch (e) {
+    } catch (_) {
+      final cached = await _cache.readMap('profile_$userId');
+      if (cached != null) return UserProfile.fromJson(cached);
       return null;
     }
   }
@@ -237,8 +271,14 @@ class BusinessService {
           .select()
           .eq('business_id', businessId)
           .order('created_at', ascending: true);
-      return (response as List).map((j) => BusinessImage.fromJson(j)).toList();
-    } catch (e) {
+      final list = (response as List).cast<Map<String, dynamic>>();
+      await _cache.save('images_$businessId', list);
+      return list.map((j) => BusinessImage.fromJson(j)).toList();
+    } catch (_) {
+      final cached = await _cache.readList('images_$businessId');
+      if (cached != null) {
+        return cached.map((j) => BusinessImage.fromJson(j)).toList();
+      }
       return [];
     }
   }
@@ -274,9 +314,13 @@ class BusinessService {
           .from('favorites')
           .select('business_id')
           .eq('user_id', userId);
-      return (response as List).map((r) => r['business_id'] as String).toSet();
-    } catch (e) {
-      return {};
+      final ids =
+          (response as List).map((r) => r['business_id'] as String).toList();
+      await _cache.save('favorites_$userId', ids);
+      return ids.toSet();
+    } catch (_) {
+      final cached = await _cache.readStringList('favorites_$userId');
+      return cached?.toSet() ?? {};
     }
   }
 
@@ -357,10 +401,14 @@ class BusinessService {
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(50);
-      return (response as List)
-          .map((j) => AppNotification.fromJson(j))
-          .toList();
-    } catch (e) {
+      final list = (response as List).cast<Map<String, dynamic>>();
+      await _cache.save('notifications_$userId', list);
+      return list.map((j) => AppNotification.fromJson(j)).toList();
+    } catch (_) {
+      final cached = await _cache.readList('notifications_$userId');
+      if (cached != null) {
+        return cached.map((j) => AppNotification.fromJson(j)).toList();
+      }
       return [];
     }
   }
@@ -425,8 +473,14 @@ class BusinessService {
           .select()
           .eq('owner_id', ownerId)
           .order('created_at', ascending: false);
-      return (response as List).map((j) => Business.fromJson(j)).toList();
-    } catch (e) {
+      final list = (response as List).cast<Map<String, dynamic>>();
+      await _cache.save('owner_businesses_$ownerId', list);
+      return list.map((j) => Business.fromJson(j)).toList();
+    } catch (_) {
+      final cached = await _cache.readList('owner_businesses_$ownerId');
+      if (cached != null) {
+        return cached.map((j) => Business.fromJson(j)).toList();
+      }
       return [];
     }
   }

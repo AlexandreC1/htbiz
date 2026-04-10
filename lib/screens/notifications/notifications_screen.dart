@@ -5,9 +5,12 @@ import '../../models/notification_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/business_detail_screen.dart';
+import '../main_shell.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  final bool embedded;
+  final MainShellState? shell;
+  const NotificationsScreen({super.key, this.embedded = false, this.shell});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -43,11 +46,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (user == null) return;
     await _businessService.markAllNotificationsRead(user.id);
     await _loadNotifications();
+    widget.shell?.refreshNotificationCount();
   }
 
   Future<void> _onTapNotification(AppNotification notification) async {
     if (!notification.isRead) {
       await _businessService.markNotificationRead(notification.id);
+      // Update the list locally so the dot/tile-bg changes immediately,
+      // and refresh the shell badge so the bell counter drops.
+      if (mounted) {
+        setState(() {
+          final i = _notifications.indexWhere((n) => n.id == notification.id);
+          if (i != -1) {
+            _notifications[i] = _notifications[i].copyWith(isRead: true);
+          }
+        });
+      }
+      widget.shell?.refreshNotificationCount();
     }
 
     if (notification.businessId != null && mounted) {
@@ -58,6 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       );
       _loadNotifications();
+      widget.shell?.refreshNotificationCount();
     }
   }
 
@@ -69,6 +85,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(localization.t('notifications')),
+        automaticallyImplyLeading: !widget.embedded,
         actions: [
           if (hasUnread)
             TextButton(

@@ -1,31 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'config/supabase_config.dart';
 import 'screens/auth/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
+import 'services/connectivity_service.dart';
 import 'services/localization_service.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Validate Supabase config
-  assert(
-    SupabaseConfig.supabaseUrl.isNotEmpty &&
-        SupabaseConfig.supabaseAnonKey.isNotEmpty,
-    'Supabase config missing. Run with:\n'
-    'flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...',
-  );
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
 
-  // Initialize Supabase
+  // Initialize Supabase with deep link handling
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+    ),
   );
 
   // Initialize Localization
   await LocalizationService().init();
+
+  // Start connectivity polling so screens can react to reconnects
+  ConnectivityService.instance.start();
 
   runApp(
     ChangeNotifierProvider(
@@ -38,17 +43,17 @@ void main() async {
 final supabase = Supabase.instance.client;
 final navigatorKey = GlobalKey<NavigatorState>();
 
-// Brand colors
+// Brand colors — Haiti-inspired Caribbean palette
 class AppColors {
-  static const primary = Color(0xFF00897B);      // Teal 600
-  static const primaryDark = Color(0xFF00695C);   // Teal 800
-  static const primaryLight = Color(0xFFB2DFDB);  // Teal 100
-  static const accent = Color(0xFF26A69A);        // Teal 400
-  static const surface = Color(0xFFFAFAFA);
+  static const primary = Color(0xFF1B4F72);      // Deep ocean blue
+  static const primaryDark = Color(0xFF0E3A5C);   // Darker blue
+  static const primaryLight = Color(0xFFD4E6F1);  // Soft sky blue
+  static const accent = Color(0xFFE8A838);        // Warm golden amber
+  static const surface = Color(0xFFFAF8F5);       // Warm off-white
   static const card = Colors.white;
-  static const textPrimary = Color(0xFF212121);
-  static const textSecondary = Color(0xFF757575);
-  static const divider = Color(0xFFEEEEEE);
+  static const textPrimary = Color(0xFF1C2833);
+  static const textSecondary = Color(0xFF6C7A89);
+  static const divider = Color(0xFFE8E4DF);       // Warm gray divider
 }
 
 class HTBizApp extends StatefulWidget {

@@ -35,6 +35,22 @@ class AppNotification {
     );
   }
 
+  AppNotification copyWith({
+    bool? isRead,
+  }) {
+    return AppNotification(
+      id: id,
+      userId: userId,
+      type: type,
+      title: title,
+      body: body,
+      businessId: businessId,
+      reviewId: reviewId,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
