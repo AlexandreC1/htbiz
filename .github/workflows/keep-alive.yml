@@ -1,20 +1,23 @@
 name: Keep Supabase Alive
 on:
   schedule:
-    # Runs every 2 weeks (1st and 15th of each month at 8:00 UTC)
-    - cron: '0 8 1,15 * *'
+    # Runs every 3 days so the Supabase free project does not pause for inactivity.
+    - cron: '0 8 */3 * *'
   workflow_dispatch: # Allow manual trigger
 jobs:
   ping:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - name: Check secrets are set
         run: |
-          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+          if [ -z "$SUPABASE_URL" ]; then
             echo "::error::SUPABASE_URL secret is missing or empty"
             exit 1
           fi
-          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "::error::SUPABASE_ANON_KEY secret is missing or empty"
             exit 1
           fi
@@ -22,18 +25,33 @@ jobs:
 
       - name: Ping Supabase
         run: |
-          response=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          supabase_url="${SUPABASE_URL%/}"
 
-          echo "Response code: $response"
-          echo "Response body:"
-          cat /tmp/body.txt
+          for attempt in 1 2 3 4 5; do
+            response=$(curl --silent --show-error --location \
+              --connect-timeout 15 \
+              --max-time 45 \
+              --output /tmp/body.txt \
+              --write-out "%{http_code}" \
+              "$supabase_url/rest/v1/" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY")
 
-          if [ "$response" -ne 200 ]; then
-            echo "::error::Ping failed with status $response (see body above)"
-            exit 1
-          fi
+            echo "Attempt $attempt response code: $response"
 
-          echo "Supabase project is alive"
+            if [ "$response" -ge 200 ] && [ "$response" -lt 400 ]; then
+              echo "Supabase project is alive"
+              exit 0
+            fi
+
+            echo "Response body:"
+            cat /tmp/body.txt
+
+            if [ "$attempt" -lt 5 ]; then
+              echo "Ping failed; waiting before retrying in case the project is waking up."
+              sleep 30
+            fi
+          done
+
+          echo "::error::Ping failed after 5 attempts"
+          exit 1
