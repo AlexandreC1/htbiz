@@ -33,7 +33,7 @@ jobs:
               --max-time 45 \
               --output /tmp/body.txt \
               --write-out "%{http_code}" \
-              "$supabase_url/rest/v1/" \
+              "$supabase_url/rest/v1/businesses?select=id&limit=1" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "Authorization: Bearer $SUPABASE_ANON_KEY")
 
