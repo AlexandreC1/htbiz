@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../services/business_service.dart';
+import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
 import '../main_shell.dart';
 import 'login_screen.dart';
@@ -20,11 +22,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _selectRole(String role) async {
     setState(() => _isLoading = true);
+    final loc = Provider.of<LocalizationService>(context, listen: false);
     try {
       final user = supabase.auth.currentUser;
 
       if (user != null) {
-        // User is already authenticated — save role and proceed
         await BusinessService().updateProfile(
           userId: user.id,
           email: user.email ?? '',
@@ -41,15 +43,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
         }
       } else {
-        // User signed up but hasn't confirmed email yet
-        // Save role locally so it's applied after first login
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('pending_role', role);
 
         if (mounted) {
           AppToast.show(
             context,
-            'Please check your email and confirm your account, then log in.',
+            loc.t('confirm_email_then_login'),
             type: AppToastType.info,
             duration: const Duration(seconds: 5),
           );
@@ -61,7 +61,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error: $e');
+        AppToast.error(context, '${loc.t('error')}: $e');
         setState(() => _isLoading = false);
       }
     }
@@ -69,6 +69,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context);
+
     return Scaffold(
       body: SafeArea(
         child: _isLoading
@@ -94,7 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Welcome to HTBIZ!',
+                      loc.t('welcome_to_htbiz'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 26,
@@ -104,7 +106,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'How will you use HTBIZ?',
+                      loc.t('how_will_you_use'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 15,
@@ -112,32 +114,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                     const SizedBox(height: 48),
-
-                    // Business Owner card
                     _RoleCard(
                       icon: Icons.storefront_rounded,
-                      title: "I'm a Business Owner",
-                      subtitle:
-                          'List and manage your business, upload photos, respond to reviews',
+                      title: loc.t('im_business_owner'),
+                      subtitle: loc.t('owner_description'),
                       color: AppColors.primaryDark,
                       onTap: () => _selectRole('business_owner'),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Client card
                     _RoleCard(
                       icon: Icons.search_rounded,
-                      title: "I'm a Client",
-                      subtitle:
-                          'Discover local businesses, read and write reviews',
+                      title: loc.t('im_client'),
+                      subtitle: loc.t('client_description'),
                       color: AppColors.accent,
                       onTap: () => _selectRole('client'),
                     ),
-
                     const SizedBox(height: 48),
                     Text(
-                      'You can change this later in your profile.',
+                      loc.t('can_change_later'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey[500], fontSize: 13),
                     ),

@@ -107,8 +107,7 @@ class _HTBizLogoPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.012;
     canvas.drawRect(
-      Rect.fromLTWH(
-          w * 0.02, h * 0.02, w - w * 0.04, h - h * 0.04),
+      Rect.fromLTWH(w * 0.02, h * 0.02, w - w * 0.04, h - h * 0.04),
       border,
     );
   }
@@ -150,8 +149,7 @@ class _HTBizLogoPainter extends CustomPainter {
     );
     // Crossbar
     final crossbar = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-          left + strokeW * 0.2, cy - strokeW * 0.45,
+      Rect.fromLTWH(left + strokeW * 0.2, cy - strokeW * 0.45,
           hWidth - strokeW * 0.4, strokeW * 0.9),
       Radius.circular(strokeW * 0.35),
     );

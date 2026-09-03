@@ -8,6 +8,7 @@ import '../../models/business_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/push_notification_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
 import 'add_business_screen.dart';
@@ -94,8 +95,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 localization.t('upload_patent'),
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             Padding(
@@ -205,15 +206,18 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
               if (value == 'profile') {
-                final shellState = context.findAncestorStateOfType<MainShellState>();
+                final shellState =
+                    context.findAncestorStateOfType<MainShellState>();
                 if (shellState != null) {
                   // Profile is always the last tab
                   shellState.navigateToTab(shellState.tabCount - 1);
                 }
               } else if (value == 'logout') {
+                final navigator = Navigator.of(context);
+                await PushNotificationService.instance.deleteToken();
                 await supabase.auth.signOut();
                 if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
+                  navigator.pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                     (route) => false,
                   );
@@ -281,14 +285,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                     Navigator.push(
                                       context,
                                       FadeSlideRoute(
-                                              page: const AddBusinessScreen()),
+                                          page: const AddBusinessScreen()),
                                     ).then((_) => _loadData());
                                   },
                                   icon: const Icon(Icons.add),
-                                  label:
-                                      Text(localization.t('add_business')),
+                                  label: Text(localization.t('add_business')),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal,
+                                    backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 24, vertical: 12),
@@ -314,16 +317,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                               child: Text(
                                 localization.t('your_businesses'),
                                 style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold),
+                                    fontSize: 20, fontWeight: FontWeight.bold),
                               ),
                             ),
                             Text(
                               '${_businesses.length}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.teal[700],
+                                color: AppColors.primaryDark,
                               ),
                             ),
                           ],
@@ -331,8 +333,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         const SizedBox(height: 12),
 
                         // Business cards
-                        ..._businesses.map(
-                            (b) => _buildBusinessTile(b, localization)),
+                        ..._businesses
+                            .map((b) => _buildBusinessTile(b, localization)),
 
                         // Recent activity
                         const SizedBox(height: 24),
@@ -357,7 +359,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         },
         icon: const Icon(Icons.add),
         label: Text(localization.t('add_business')),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
     );
@@ -370,7 +372,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           Icons.store,
           '${_businesses.length}',
           localization.t('your_businesses'),
-          Colors.teal,
+          AppColors.primary,
         ),
         const SizedBox(width: 8),
         _buildStatCard(
@@ -502,7 +504,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                               const SizedBox(width: 4),
                               Icon(Icons.verified,
                                   size: 16, color: Colors.blue[600]),
-                            ] else if (business.verificationStatus == 'pending') ...[
+                            ] else if (business.verificationStatus ==
+                                'pending') ...[
                               const SizedBox(width: 4),
                               Icon(Icons.hourglass_top,
                                   size: 14, color: Colors.orange[600]),
@@ -537,8 +540,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         const SizedBox(height: 2),
                         Text(
                           business.category,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600]),
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600]),
                         ),
                       ],
                     ),
@@ -600,8 +603,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               color: Colors.blue[50],
               child: Row(
                 children: [
-                  Icon(Icons.hourglass_top,
-                      size: 16, color: Colors.blue[700]),
+                  Icon(Icons.hourglass_top, size: 16, color: Colors.blue[700]),
                   const SizedBox(width: 8),
                   Text(
                     localization.t('verification_pending'),
@@ -637,8 +639,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                   label: Text(
                     localization.t('delete'),
-                    style:
-                        const TextStyle(fontSize: 13, color: Colors.red),
+                    style: const TextStyle(fontSize: 13, color: Colors.red),
                   ),
                 ),
               ),
@@ -674,8 +675,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     return Column(
       children: recent.map((entry) {
         final review = entry.value;
-        final business =
-            _businesses.firstWhere((b) => b.id == entry.key);
+        final business = _businesses.firstWhere((b) => b.id == entry.key);
         final daysAgo = DateTime.now().difference(review.createdAt).inDays;
         final timeText = daysAgo == 0
             ? localization.t('today')
@@ -700,8 +700,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             ),
             title: Text(
               business.name,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             subtitle: Text(
               review.comment ?? '★' * review.rating,

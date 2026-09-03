@@ -92,7 +92,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onPressed: _markAllRead,
               child: Text(
                 localization.t('mark_all_read'),
-                style: const TextStyle(color: Color(0xFF006064)),
+                style: const TextStyle(color: AppColors.primary),
               ),
             ),
         ],
@@ -109,8 +109,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const SizedBox(height: 16),
                       Text(
                         localization.t('no_notifications'),
-                        style:
-                            TextStyle(fontSize: 18, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -158,7 +157,7 @@ class _NotificationTile extends StatelessWidget {
       case 'new_review':
         return Colors.blue;
       case 'review_reply':
-        return Colors.teal;
+        return AppColors.primary;
       default:
         return Colors.grey;
     }
@@ -175,7 +174,9 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      tileColor: notification.isRead ? null : Colors.teal.withValues(alpha: 0.05),
+      tileColor: notification.isRead
+          ? null
+          : AppColors.primary.withValues(alpha: 0.05),
       leading: CircleAvatar(
         backgroundColor: _iconColor.withValues(alpha: 0.15),
         child: Icon(_icon, color: _iconColor, size: 20),
@@ -206,7 +207,7 @@ class _NotificationTile extends StatelessWidget {
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                color: Colors.teal,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
             ),

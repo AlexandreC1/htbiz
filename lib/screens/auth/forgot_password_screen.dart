@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../widgets/app_toast.dart';
+import '../../services/localization_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -41,7 +44,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (error) {
       if (mounted) {
         setState(() => _isLoading = false);
-
         AppToast.error(context, error.toString());
       }
     }
@@ -49,121 +51,109 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mot de passe oublié'),
-        backgroundColor: const Color(0xFF006064),
-        foregroundColor: Colors.white,
+        title: Text(loc.t('forgot_password')),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _emailSent ? _buildSuccessView() : _buildFormView(),
+            child: _emailSent ? _buildSuccessView(loc) : _buildFormView(loc),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormView() {
+  Widget _buildFormView(LocalizationService loc) {
     return Form(
       key: _formKey,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Icon
           const Icon(
             Icons.lock_reset,
             size: 80,
-            color: Color(0xFF006064),
+            color: AppColors.primary,
           ),
           const SizedBox(height: 30),
-
-          // Title
           Text(
-            'Réinitialiser le mot de passe',
+            loc.t('reset_password'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
-
-          // Description
           Text(
-            'Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
+            loc.t('reset_password_description'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 40),
-
-          // Email field
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Email',
-              hintText: 'votre@email.com',
-              prefixIcon: const Icon(Icons.email_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              hintText: 'you@example.com',
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              prefixIcon: const Icon(Icons.email_outlined, size: 20),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Veuillez entrer votre email';
+                return loc.t('please_enter_email');
               }
               if (!value.contains('@')) {
-                return 'Veuillez entrer un email valide';
+                return loc.t('please_enter_valid_email');
               }
               return null;
             },
           ),
           const SizedBox(height: 30),
-
-          // Send Button
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else
-            ElevatedButton(
-              onPressed: _sendResetEmail,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF006064),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Envoyer le lien',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 52,
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _sendResetEmail,
+                      child: Text(loc.t('send_link')),
+                    ),
+                  ),
+          ),
           const SizedBox(height: 16),
-
-          // Back to Login
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Retour à la connexion'),
+            child: Text(loc.t('back_to_login')),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSuccessView() {
+  Widget _buildSuccessView(LocalizationService loc) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Success Icon
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -177,84 +167,64 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-
-        // Success Title
         Text(
-          'Email envoyé!',
+          loc.t('email_sent'),
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.green[700],
-              ),
-        ),
-        const SizedBox(height: 16),
-
-        // Success Message
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Nous avons envoyé un lien de réinitialisation à:\n\n${_emailController.text}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
+          style: GoogleFonts.poppins(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.green[700],
           ),
         ),
         const SizedBox(height: 16),
-
-        // Instructions
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'Veuillez vérifier votre boîte de réception et cliquer sur le lien pour réinitialiser votre mot de passe.',
+            '${loc.t('reset_link_sent_to')}\n\n${_emailController.text}',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: GoogleFonts.poppins(fontSize: 15),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            loc.t('check_inbox'),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         const SizedBox(height: 8),
-
-        // Spam Folder Note
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'Remarque: Vérifiez également votre dossier spam.',
+            loc.t('check_spam'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontStyle: FontStyle.italic,
-                ),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.grey[500],
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ),
         const SizedBox(height: 40),
-
-        // Resend Button
         OutlinedButton.icon(
           onPressed: () {
             setState(() => _emailSent = false);
           },
           icon: const Icon(Icons.refresh),
-          label: const Text('Renvoyer l\'email'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          label: Text(loc.t('resend_email')),
         ),
         const SizedBox(height: 16),
-
-        // Back to Login
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF006064),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+        SizedBox(
+          height: 52,
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(loc.t('back_to_login')),
           ),
-          child: const Text('Retour à la connexion'),
         ),
       ],
     );

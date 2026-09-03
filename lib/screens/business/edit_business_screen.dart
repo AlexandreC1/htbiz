@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
@@ -74,13 +76,20 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     _lngController = TextEditingController(
         text: widget.business.longitude?.toStringAsFixed(6) ?? '');
     _currentImageUrl = widget.business.imageUrl;
+  }
 
-    // Find category key from display name
-    _selectedCategoryKey = _findCategoryKey(widget.business.category);
+  bool _categoryResolved = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_categoryResolved) {
+      _categoryResolved = true;
+      _selectedCategoryKey = _findCategoryKey(widget.business.category);
+    }
   }
 
   String _findCategoryKey(String displayCategory) {
-    // Try to match the display category to a key
     final localization =
         Provider.of<LocalizationService>(context, listen: false);
     for (String key in _categoryKeys.keys) {
@@ -88,7 +97,11 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
         return key;
       }
     }
-    return 'other'; // fallback
+    // Also try matching the raw key directly (category may be stored as key)
+    if (_categoryKeys.containsKey(displayCategory.toLowerCase())) {
+      return displayCategory.toLowerCase();
+    }
+    return 'other';
   }
 
   @override
@@ -170,6 +183,63 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     );
   }
 
+  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
+
+  /// Geocode an address to lat/lng. Tries Google first, then Nominatim.
+  Future<Map<String, double>?> _geocodeAddress(String address) async {
+    final lower = address.toLowerCase();
+    final query = (lower.contains('haiti') ||
+            lower.contains('haïti') ||
+            lower.contains('ht'))
+        ? address
+        : '$address, Haiti';
+
+    try {
+      final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
+        'address': query,
+        'key': _mapsApiKey,
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      if (json['status'] == 'OK' && (json['results'] as List).isNotEmpty) {
+        final location =
+            json['results'][0]['geometry']['location'] as Map<String, dynamic>;
+        return {
+          'lat': (location['lat'] as num).toDouble(),
+          'lng': (location['lng'] as num).toDouble(),
+        };
+      }
+    } catch (_) {}
+
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': query,
+        'format': 'json',
+        'limit': '1',
+      });
+      final client = HttpClient();
+      final request = await client.getUrl(uri);
+      request.headers.set('User-Agent', 'HTBIZ/1.0 (contact@htbiz.app)');
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      final list = jsonDecode(body) as List<dynamic>;
+      if (list.isNotEmpty) {
+        final result = list.first as Map<String, dynamic>;
+        return {
+          'lat': double.parse(result['lat'] as String),
+          'lng': double.parse(result['lon'] as String),
+        };
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
   Future<void> _updateBusiness() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -190,10 +260,30 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
       // Get translated category name
       final categoryDisplay = localization.t(_selectedCategoryKey);
 
+      // Auto-geocode the address if user didn't supply lat/lng manually
+      double? lat = _latController.text.trim().isNotEmpty
+          ? double.tryParse(_latController.text.trim())
+          : null;
+      double? lng = _lngController.text.trim().isNotEmpty
+          ? double.tryParse(_lngController.text.trim())
+          : null;
+
+      if (lat == null || lng == null) {
+        final address = InputSanitizer.sanitizeAddress(_addressController.text);
+        if (address.isNotEmpty) {
+          final coords = await _geocodeAddress(address);
+          if (coords != null) {
+            lat = coords['lat'];
+            lng = coords['lng'];
+          }
+        }
+      }
+
       // Update business
       final updates = {
         'name': InputSanitizer.sanitizeName(_nameController.text),
-        'description': InputSanitizer.sanitizeDescription(_descriptionController.text),
+        'description':
+            InputSanitizer.sanitizeDescription(_descriptionController.text),
         'category': categoryDisplay,
         'address': InputSanitizer.sanitizeAddress(_addressController.text),
         'phone': InputSanitizer.sanitizePhone(_phoneController.text),
@@ -202,12 +292,8 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
         'hours_text': _hoursController.text.trim().isNotEmpty
             ? _hoursController.text.trim()
             : null,
-        'latitude': _latController.text.trim().isNotEmpty
-            ? double.tryParse(_latController.text.trim())
-            : null,
-        'longitude': _lngController.text.trim().isNotEmpty
-            ? double.tryParse(_lngController.text.trim())
-            : null,
+        'latitude': lat,
+        'longitude': lng,
         'image_url': imageUrl,
       };
 
@@ -248,7 +334,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                   children: [
                     // Current business name as header
                     Text(
-                      'Editing: ${widget.business.name}',
+                      '${localization.t('editing')}: ${widget.business.name}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -464,6 +550,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                           ? null
                           : () async {
                               setState(() => _isGettingLocation = true);
+                              final ctx = context;
                               try {
                                 LocationPermission permission =
                                     await Geolocator.checkPermission();
@@ -475,7 +562,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                     permission ==
                                         LocationPermission.deniedForever) {
                                   if (mounted) {
-                                    AppToast.warning(context,
+                                    AppToast.warning(ctx,
                                         localization.t('location_unavailable'));
                                   }
                                   return;
@@ -493,7 +580,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                 });
                               } catch (e) {
                                 if (mounted) {
-                                  AppToast.warning(context,
+                                  AppToast.warning(ctx,
                                       localization.t('location_unavailable'));
                                 }
                               } finally {
@@ -506,8 +593,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.gps_fixed),
                       label: Text(localization.t('use_current_location')),
@@ -519,11 +605,11 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                     ElevatedButton(
                       onPressed: _isLoading ? null : _updateBusiness,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isLoading
@@ -536,9 +622,9 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Update Business',
-                              style: TextStyle(
+                          : Text(
+                              localization.t('update_business'),
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                     ),

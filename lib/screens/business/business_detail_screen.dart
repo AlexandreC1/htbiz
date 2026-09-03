@@ -61,7 +61,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       if (user != null && !user.isAnonymous) {
         final favIds = await _businessService.getFavoriteIds(user.id);
         isFav = favIds.contains(widget.businessId);
-        checkedIn = await _businessService.hasCheckedIn(user.id, widget.businessId);
+        checkedIn =
+            await _businessService.hasCheckedIn(user.id, widget.businessId);
       }
 
       // Populate like counts and user's like status
@@ -133,6 +134,30 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     return null;
   }
 
+  Future<void> _openGoogleMapsDirections() async {
+    final business = _business;
+    if (business == null) return;
+
+    Uri url;
+    if (business.latitude != null && business.longitude != null) {
+      // Use exact coordinates for precise navigation
+      url = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}',
+      );
+    } else {
+      // Fall back to address-based navigation — Google Maps geocodes it
+      url = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(business.address)}',
+      );
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      AppToast.error(context, 'Could not open Google Maps');
+    }
+  }
+
   void _showInAppMap() async {
     final business = _business;
     if (business == null) return;
@@ -152,10 +177,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     if (!mounted) return;
 
-    if (position == null) {
-      // Geocoding failed — default to Haiti center
-      position = const LatLng(18.9712, -72.2852);
-    }
+    // Geocoding failed — default to Haiti center
+    position ??= const LatLng(18.9712, -72.2852);
 
     Navigator.push(
       context,
@@ -194,7 +217,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Future<void> _toggleFavorite() async {
     final user = supabase.auth.currentUser;
     if (user == null || user.isAnonymous) {
-      AppToast.warning(context, 'Sign in to save favorites');
+      final localization =
+          Provider.of<LocalizationService>(context, listen: false);
+      AppToast.warning(context, localization.t('sign_in_to_favorite'));
       return;
     }
     setState(() => _isTogglingFavorite = true);
@@ -224,17 +249,22 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _showOwnerReplyDialog(Review review) {
-    final replyController = TextEditingController(text: review.ownerReply ?? '');
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+    final replyController =
+        TextEditingController(text: review.ownerReply ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(review.ownerReply != null ? 'Edit Reply' : 'Reply to Review'),
+        title: Text(review.ownerReply != null
+            ? localization.t('edit_reply')
+            : localization.t('reply_to_review')),
         content: TextField(
           controller: replyController,
           maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Write your reply...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: localization.t('write_reply'),
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -245,11 +275,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 await _businessService.deleteReviewReply(review.id);
                 await _loadBusinessDetails();
               },
-              child: const Text('Delete Reply', style: TextStyle(color: Colors.red)),
+              child: Text(localization.t('delete_reply'),
+                  style: const TextStyle(color: Colors.red)),
             ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(localization.t('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -259,7 +290,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               await _businessService.replyToReview(review.id, reply);
               await _loadBusinessDetails();
             },
-            child: const Text('Post Reply'),
+            child: Text(localization.t('post_reply')),
           ),
         ],
       ),
@@ -408,7 +439,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: selectedReviewImages.length +
-                          (selectedReviewImages.length < maxReviewImages ? 1 : 0),
+                          (selectedReviewImages.length < maxReviewImages
+                              ? 1
+                              : 0),
                       separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         // Trailing add-button tile
@@ -497,7 +530,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             isAnonymous = value;
                           });
                         },
-                        activeColor: Colors.teal,
+                        activeTrackColor: AppColors.primaryLight,
+                        activeThumbColor: AppColors.primary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -526,7 +560,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   : () async {
                       final commentText = commentController.text.trim();
                       final rating = selectedRating;
-                      final reviewImages = List<File>.from(selectedReviewImages);
+                      final reviewImages =
+                          List<File>.from(selectedReviewImages);
                       final anonymous = isAnonymous;
 
                       setDialogState(() => isUploadingImage = true);
@@ -535,10 +570,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
                       try {
                         // Upload all selected review images in parallel
-                        final List<String> reviewImageUrls = reviewImages.isEmpty
-                            ? const []
-                            : await _businessService
-                                .uploadReviewImages(reviewImages);
+                        final List<String> reviewImageUrls =
+                            reviewImages.isEmpty
+                                ? const []
+                                : await _businessService
+                                    .uploadReviewImages(reviewImages);
 
                         // Get user display name from profile
                         String displayName = localization.t('anonymous');
@@ -555,9 +591,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           businessId: widget.businessId,
                           userId: user.id,
                           rating: rating,
-                          comment: commentText.isNotEmpty
-                              ? commentText
-                              : null,
+                          comment: commentText.isNotEmpty ? commentText : null,
                           createdAt: DateTime.now(),
                           userName: displayName,
                           userEmail: user.email,
@@ -570,16 +604,20 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         // Stats are updated by DB trigger automatically
                         await _loadBusinessDetails();
 
-                        final rootCtx = navigatorKey.currentContext;
-                        if (mounted && rootCtx != null) {
-                          AppToast.success(rootCtx,
-                              localization.t('review_added_success'));
+                        if (mounted) {
+                          final rootCtx = navigatorKey.currentContext;
+                          if (rootCtx != null) {
+                            AppToast.success(rootCtx,
+                                localization.t('review_added_success'));
+                          }
                         }
                       } catch (e) {
-                        final rootCtx = navigatorKey.currentContext;
-                        if (mounted && rootCtx != null) {
-                          AppToast.error(
-                              rootCtx, '${localization.t('error')}: $e');
+                        if (mounted) {
+                          final rootCtx = navigatorKey.currentContext;
+                          if (rootCtx != null) {
+                            AppToast.error(
+                                rootCtx, '${localization.t('error')}: $e');
+                          }
                         }
                       } finally {
                         setState(() => _isSubmittingReview = false);
@@ -601,6 +639,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
   void _showReviewImagePicker(
       StateSetter setDialogState, Function(File?) onImageSelected) {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -608,7 +648,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
+              title: Text(localization.t('choose_from_gallery')),
               onTap: () async {
                 Navigator.pop(context);
                 try {
@@ -622,16 +662,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
-                  final rootCtx = navigatorKey.currentContext;
-                  if (mounted && rootCtx != null) {
-                    AppToast.error(rootCtx, 'Error picking image: $e');
+                  if (mounted) {
+                    final rootCtx = navigatorKey.currentContext;
+                    if (rootCtx != null) {
+                      AppToast.error(rootCtx, 'Error picking image: $e');
+                    }
                   }
                 }
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera),
-              title: const Text('Take Photo'),
+              title: Text(localization.t('take_photo')),
               onTap: () async {
                 Navigator.pop(context);
                 try {
@@ -645,9 +687,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
-                  final rootCtx = navigatorKey.currentContext;
-                  if (mounted && rootCtx != null) {
-                    AppToast.error(rootCtx, 'Error taking photo: $e');
+                  if (mounted) {
+                    final rootCtx = navigatorKey.currentContext;
+                    if (rootCtx != null) {
+                      AppToast.error(rootCtx, 'Error taking photo: $e');
+                    }
                   }
                 }
               },
@@ -682,14 +726,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   navigator.pop(true);
                   final rootCtx = navigatorKey.currentContext;
                   if (rootCtx != null) {
-                    AppToast.success(rootCtx,
-                        localization.t('business_deleted_success'));
+                    AppToast.success(
+                        rootCtx, localization.t('business_deleted_success'));
                   }
                 }
               } catch (e) {
-                final rootCtx = navigatorKey.currentContext;
-                if (mounted && rootCtx != null) {
-                  AppToast.error(rootCtx, '${localization.t('error')}: $e');
+                if (mounted) {
+                  final rootCtx = navigatorKey.currentContext;
+                  if (rootCtx != null) {
+                    AppToast.error(rootCtx, '${localization.t('error')}: $e');
+                  }
                 }
               }
             },
@@ -705,6 +751,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Widget _buildPhotoGallery(bool isOwner) {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     // Collect all photos: main image + gallery images
     final List<String> allPhotos = [];
     if (_business?.imageUrl != null) allPhotos.add(_business!.imageUrl!);
@@ -750,19 +798,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.teal, style: BorderStyle.solid),
+                            color: AppColors.primary, style: BorderStyle.solid),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(Icons.add_photo_alternate,
-                              size: 40, color: Colors.teal),
+                              size: 40, color: AppColors.primary),
                           const SizedBox(height: 8),
                           Text(
-                            'Add Photo\n(${allPhotos.length}/$maxPhotos)',
+                            '${localization.t('add_photo')}\n(${allPhotos.length}/$maxPhotos)',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                                color: Colors.teal, fontSize: 12),
+                                color: AppColors.primary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -829,6 +877,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _addGalleryPhoto() async {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     final picker = ImagePicker();
     showModalBottomSheet(
       context: context,
@@ -837,7 +887,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
+              title: Text(localization.t('choose_from_gallery')),
               onTap: () async {
                 Navigator.pop(context);
                 final image = await picker.pickImage(
@@ -851,7 +901,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera),
-              title: const Text('Take Photo'),
+              title: Text(localization.t('take_photo')),
               onTap: () async {
                 Navigator.pop(context);
                 final image = await picker.pickImage(
@@ -872,8 +922,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Future<void> _uploadGalleryPhoto(File imageFile) async {
     setState(() => _isAddingPhoto = true);
     try {
-      final newImage = await _businessService.addBusinessImage(
-          widget.businessId, imageFile);
+      final newImage =
+          await _businessService.addBusinessImage(widget.businessId, imageFile);
       setState(() => _galleryImages.add(newImage));
     } catch (e) {
       if (mounted) {
@@ -885,20 +935,23 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _confirmDeletePhoto(BusinessImage image) async {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Photo'),
-        content: const Text('Remove this photo from your business?'),
+        title: Text(localization.t('delete_photo')),
+        content: Text(localization.t('delete_photo_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(localization.t('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(localization.t('delete'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -989,12 +1042,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 )
                               : IconButton(
                                   icon: Icon(
-                                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                    _isFavorite
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
                                     color: _isFavorite ? Colors.red : null,
                                   ),
                                   onPressed: _toggleFavorite,
@@ -1061,10 +1117,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                           ),
                                         ),
                                       ),
-                                      if (_business!.verificationStatus == 'verified') ...[
+                                      if (_business!.verificationStatus ==
+                                          'verified') ...[
                                         const SizedBox(width: 8),
                                         Tooltip(
-                                          message: localization.t('verified_business'),
+                                          message: localization
+                                              .t('verified_business'),
                                           child: Icon(
                                             Icons.verified,
                                             color: Colors.blue[600],
@@ -1081,13 +1139,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.teal[50],
+                                    color: AppColors.primaryLight,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     _business!.category,
-                                    style: TextStyle(
-                                      color: Colors.teal[700],
+                                    style: const TextStyle(
+                                      color: AppColors.primaryDark,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1161,7 +1219,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 child: Row(
                                   children: [
                                     const Icon(Icons.location_on,
-                                        color: Colors.teal),
+                                        color: AppColors.primary),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
@@ -1170,8 +1228,29 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                       ),
                                     ),
                                     const Icon(Icons.map_outlined,
-                                        size: 20, color: Colors.teal),
+                                        size: 20, color: AppColors.primary),
                                   ],
+                                ),
+                              ),
+                            ),
+
+                            // Get Directions button
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, bottom: 8),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _openGoogleMapsDirections,
+                                  icon: const Icon(Icons.directions, size: 20),
+                                  label: Text(localization.t('open_in_maps')),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(
+                                        color: AppColors.primary),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1181,12 +1260,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               InkWell(
                                 onTap: () => _makePhoneCall(_business!.phone!),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.phone, color: Colors.teal),
+                                      const Icon(Icons.phone,
+                                          color: AppColors.primary),
                                       const SizedBox(width: 12),
-                                      Text(_business!.phone!, style: const TextStyle(fontSize: 16)),
+                                      Text(_business!.phone!,
+                                          style: const TextStyle(fontSize: 16)),
                                       const Spacer(),
                                       const Icon(Icons.call, size: 20),
                                     ],
@@ -1197,14 +1279,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             // WhatsApp
                             if (_business!.whatsapp != null)
                               InkWell(
-                                onTap: () => _openWhatsApp(_business!.whatsapp!),
+                                onTap: () =>
+                                    _openWhatsApp(_business!.whatsapp!),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.chat, color: Color(0xFF25D366)),
+                                      const Icon(Icons.chat,
+                                          color: Color(0xFF25D366)),
                                       const SizedBox(width: 12),
-                                      Text(_business!.whatsapp!, style: const TextStyle(fontSize: 16)),
+                                      Text(_business!.whatsapp!,
+                                          style: const TextStyle(fontSize: 16)),
                                       const Spacer(),
                                       const Icon(Icons.open_in_new, size: 20),
                                     ],
@@ -1217,15 +1303,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               InkWell(
                                 onTap: () => _openWebsite(_business!.website!),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.language, color: Colors.teal),
+                                      const Icon(Icons.language,
+                                          color: AppColors.primary),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           _business!.website!,
-                                          style: const TextStyle(fontSize: 16, color: Colors.blue),
+                                          style: const TextStyle(
+                                              fontSize: 16, color: Colors.blue),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -1241,7 +1330,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.schedule, color: Colors.teal),
+                                  const Icon(Icons.schedule,
+                                      color: AppColors.primary),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
@@ -1263,8 +1353,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   child: OutlinedButton.icon(
                                     onPressed: _checkIn,
                                     icon: Icon(
-                                      _hasCheckedIn ? Icons.check_circle : Icons.place,
-                                      color: _hasCheckedIn ? Colors.green : null,
+                                      _hasCheckedIn
+                                          ? Icons.check_circle
+                                          : Icons.place,
+                                      color:
+                                          _hasCheckedIn ? Colors.green : null,
                                     ),
                                     label: Text(
                                       _hasCheckedIn
@@ -1274,9 +1367,13 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     style: OutlinedButton.styleFrom(
                                       minimumSize: const Size(0, 48),
                                       side: BorderSide(
-                                        color: _hasCheckedIn ? Colors.green : Colors.teal,
+                                        color: _hasCheckedIn
+                                            ? Colors.green
+                                            : AppColors.primary,
                                       ),
-                                      foregroundColor: _hasCheckedIn ? Colors.green : Colors.teal,
+                                      foregroundColor: _hasCheckedIn
+                                          ? Colors.green
+                                          : AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -1288,7 +1385,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     icon: const Icon(Icons.rate_review),
                                     label: Text(localization.t('write_review')),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal,
+                                      backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
                                       minimumSize: const Size(0, 48),
                                     ),
@@ -1363,7 +1460,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   return _ReviewCard(
                                     review: review,
                                     isOwner: isOwner,
-                                    onReply: () => _showOwnerReplyDialog(review),
+                                    onReply: () =>
+                                        _showOwnerReplyDialog(review),
                                     businessService: _businessService,
                                   );
                                 },
@@ -1457,7 +1555,7 @@ class _ReviewCardState extends State<_ReviewCard> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.teal,
+                  backgroundColor: AppColors.primary,
                   child: Text(
                     (review.userName ?? review.userEmail ?? 'A')
                         .substring(0, 1)
@@ -1474,7 +1572,9 @@ class _ReviewCardState extends State<_ReviewCard> {
                         children: [
                           Flexible(
                             child: Text(
-                              review.userName ?? review.userEmail ?? 'Anonymous',
+                              review.userName ??
+                                  review.userEmail ??
+                                  'Anonymous',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1625,9 +1725,8 @@ class _ReviewCardState extends State<_ReviewCard> {
                             '$_likesCount',
                             style: TextStyle(
                               fontSize: 13,
-                              color: _isLikedByMe
-                                  ? Colors.blue
-                                  : Colors.grey[600],
+                              color:
+                                  _isLikedByMe ? Colors.blue : Colors.grey[600],
                               fontWeight: _isLikedByMe
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -1661,24 +1760,25 @@ class _ReviewCardState extends State<_ReviewCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal[50],
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border(
-                      left: BorderSide(color: Colors.teal[300]!, width: 3)),
+                  border: const Border(
+                      left: BorderSide(color: AppColors.primary, width: 3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        Icon(Icons.store, size: 14, color: Colors.teal[700]),
-                        const SizedBox(width: 4),
+                        Icon(Icons.store,
+                            size: 14, color: AppColors.primaryDark),
+                        SizedBox(width: 4),
                         Text(
                           'Owner Reply',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: Colors.teal[700],
+                            color: AppColors.primaryDark,
                           ),
                         ),
                       ],
@@ -1733,8 +1833,7 @@ class _ReviewCardState extends State<_ReviewCard> {
                     color: Colors.black54,
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.close, color: Colors.white, size: 24),
+                  child: const Icon(Icons.close, color: Colors.white, size: 24),
                 ),
               ),
             ),
@@ -1781,8 +1880,32 @@ class _BusinessMapScreen extends StatelessWidget {
     required this.hasExactLocation,
   });
 
+  Future<void> _openGoogleMapsDirections(BuildContext context) async {
+    Uri url;
+    if (hasExactLocation) {
+      url = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${position.latitude},${position.longitude}',
+      );
+    } else {
+      url = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}',
+      );
+    }
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        AppToast.error(context, 'Could not open Google Maps');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -1790,7 +1913,7 @@ class _BusinessMapScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 18),
           overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: Stack(
@@ -1815,7 +1938,7 @@ class _BusinessMapScreen extends StatelessWidget {
             myLocationButtonEnabled: true,
             mapToolbarEnabled: false,
           ),
-          // Address bar at the bottom
+          // Address bar + directions at the bottom
           Positioned(
             left: 0,
             right: 0,
@@ -1826,7 +1949,7 @@ class _BusinessMapScreen extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, -2),
                   ),
@@ -1845,9 +1968,7 @@ class _BusinessMapScreen extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              Provider.of<LocalizationService>(context,
-                                      listen: false)
-                                  .t('approximate_location'),
+                              localization.t('approximate_location'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.orange[700],
@@ -1859,7 +1980,7 @@ class _BusinessMapScreen extends StatelessWidget {
                     ),
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: Colors.teal),
+                      const Icon(Icons.location_on, color: AppColors.primary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1868,6 +1989,23 @@ class _BusinessMapScreen extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openGoogleMapsDirections(context),
+                      icon: const Icon(Icons.directions, size: 20),
+                      label: Text(localization.t('open_in_maps')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

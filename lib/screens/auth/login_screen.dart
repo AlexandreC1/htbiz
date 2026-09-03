@@ -109,9 +109,8 @@ class _LoginScreenState extends State<LoginScreen>
             );
           }
         } else if (mounted) {
-          final profile = user != null
-              ? await BusinessService().getProfile(user.id)
-              : null;
+          final profile =
+              user != null ? await BusinessService().getProfile(user.id) : null;
 
           if (profile == null && mounted) {
             Navigator.of(context).pushAndRemoveUntil(
@@ -185,9 +184,8 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (mounted) {
         final user = supabase.auth.currentUser;
-        final profile = user != null
-            ? await BusinessService().getProfile(user.id)
-            : null;
+        final profile =
+            user != null ? await BusinessService().getProfile(user.id) : null;
 
         if (profile == null && mounted) {
           Navigator.of(context).pushAndRemoveUntil(
@@ -226,8 +224,8 @@ class _LoginScreenState extends State<LoginScreen>
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        24, 48, 24, bottomPadding + 24),
+                    padding:
+                        EdgeInsets.fromLTRB(24, 48, 24, bottomPadding + 24),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -281,8 +279,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return localization
-                                    .t('please_enter_email');
+                                return localization.t('please_enter_email');
                               }
                               if (!value.contains('@')) {
                                 return localization
@@ -331,8 +328,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return localization
-                                    .t('please_enter_password');
+                                return localization.t('please_enter_password');
                               }
                               return null;
                             },
@@ -356,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     horizontal: 4, vertical: 2),
                               ),
                               child: Text(
-                                'Mot de passe oubli\u00e9?',
+                                localization.t('forgot_password'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -387,8 +383,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     height: 52,
                                     child: ElevatedButton(
                                       onPressed: _signIn,
-                                      child: Text(
-                                          localization.t('sign_in')),
+                                      child: Text(localization.t('sign_in')),
                                     ),
                                   ),
                           ),
@@ -400,8 +395,8 @@ class _LoginScreenState extends State<LoginScreen>
                             children: [
                               const Expanded(child: Divider()),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
                                   localization.t('or'),
                                   style: GoogleFonts.poppins(
@@ -420,10 +415,9 @@ class _LoginScreenState extends State<LoginScreen>
                           SizedBox(
                             height: 52,
                             child: OutlinedButton.icon(
-                              onPressed:
-                                  (_isLoading || _isGoogleLoading)
-                                      ? null
-                                      : _signInWithGoogle,
+                              onPressed: (_isLoading || _isGoogleLoading)
+                                  ? null
+                                  : _signInWithGoogle,
                               icon: _isGoogleLoading
                                   ? const SizedBox(
                                       width: 20,
@@ -458,8 +452,7 @@ class _LoginScreenState extends State<LoginScreen>
                             height: 52,
                             child: OutlinedButton(
                               onPressed: _isLoading ? null : _signInAsGuest,
-                              child: Text(
-                                  localization.t('continue_as_guest')),
+                              child: Text(localization.t('continue_as_guest')),
                             ),
                           ),
 
@@ -485,8 +478,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   );
                                 },
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6),
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
                                 ),
                                 child: Text(
                                   localization.t('sign_up'),

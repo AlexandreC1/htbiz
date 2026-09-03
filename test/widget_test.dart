@@ -115,14 +115,10 @@ void main() {
       final extraInFr = frKeys.difference(enKeys);
       final extraInHt = htKeys.difference(enKeys);
 
-      expect(missingInFr, isEmpty,
-          reason: 'FR missing keys: $missingInFr');
-      expect(missingInHt, isEmpty,
-          reason: 'HT missing keys: $missingInHt');
-      expect(extraInFr, isEmpty,
-          reason: 'FR has extra keys: $extraInFr');
-      expect(extraInHt, isEmpty,
-          reason: 'HT has extra keys: $extraInHt');
+      expect(missingInFr, isEmpty, reason: 'FR missing keys: $missingInFr');
+      expect(missingInHt, isEmpty, reason: 'HT missing keys: $missingInHt');
+      expect(extraInFr, isEmpty, reason: 'FR has extra keys: $extraInFr');
+      expect(extraInHt, isEmpty, reason: 'HT has extra keys: $extraInHt');
     });
 
     test('verification keys exist in all languages', () {

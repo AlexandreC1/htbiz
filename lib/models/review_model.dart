@@ -4,8 +4,10 @@ class Review {
   final String userId;
   final int rating;
   final String? comment;
+
   /// Legacy single image (still populated by the DB trigger/backfill for old rows).
   final String? imageUrl;
+
   /// New: multiple images per review. Empty list if none.
   final List<String> imageUrls;
   final String? ownerReply;

@@ -59,9 +59,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (mounted) {
         final user = supabase.auth.currentUser;
-        final profile = user != null
-            ? await BusinessService().getProfile(user.id)
-            : null;
+        final profile =
+            user != null ? await BusinessService().getProfile(user.id) : null;
 
         if (profile == null && mounted) {
           Navigator.of(context).pushAndRemoveUntil(
@@ -125,8 +124,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
-                padding:
-                    EdgeInsets.fromLTRB(24, 24, 24, bottomPadding + 24),
+                padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPadding + 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -197,9 +195,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         decoration: InputDecoration(
                           hintText: '********',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: const Icon(
-                              Icons.lock_outline_rounded,
-                              size: 20),
+                          prefixIcon:
+                              const Icon(Icons.lock_outline_rounded, size: 20),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -241,9 +238,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         decoration: InputDecoration(
                           hintText: '********',
                           hintStyle: TextStyle(color: Colors.grey[400]),
-                          prefixIcon: const Icon(
-                              Icons.lock_outline_rounded,
-                              size: 20),
+                          prefixIcon:
+                              const Icon(Icons.lock_outline_rounded, size: 20),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscureConfirmPassword
@@ -290,8 +286,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 height: 52,
                                 child: ElevatedButton(
                                   onPressed: _signUp,
-                                  child: Text(
-                                      localization.t('create_account')),
+                                  child: Text(localization.t('create_account')),
                                 ),
                               ),
                       ),
@@ -303,8 +298,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
                               localization.t('or'),
                               style: GoogleFonts.poppins(
@@ -338,10 +332,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
                                   width: 20,
                                   height: 20,
-                                  errorBuilder:
-                                      (context, error, stackTrace) =>
-                                          const Icon(Icons.g_mobiledata,
-                                              size: 24),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.g_mobiledata, size: 24),
                                 ),
                           label: Text(
                             localization.t('continue_with_google'),

@@ -5,6 +5,7 @@ import '../main.dart';
 import '../models/user_profile.dart';
 import '../services/business_service.dart';
 import '../services/localization_service.dart';
+import '../services/push_notification_service.dart';
 import 'home/home_screen.dart';
 import 'map/map_screen.dart';
 import 'profile/profile_screen.dart';
@@ -34,6 +35,7 @@ class MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _loadUserData();
+    PushNotificationService.instance.init();
   }
 
   Future<void> _loadUserData() async {
@@ -77,8 +79,7 @@ class MainShellState extends State<MainShell> {
     }
   }
 
-  bool get _isBusinessOwner =>
-      _userProfile?.isBusinessOwner ?? false;
+  bool get _isBusinessOwner => _userProfile?.isBusinessOwner ?? false;
 
   List<Widget> _buildPages() {
     final pages = <Widget>[
@@ -159,7 +160,8 @@ class MainShellState extends State<MainShell> {
           selectedFontSize: 12,
           unselectedFontSize: 11,
           selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+          unselectedLabelStyle:
+              GoogleFonts.poppins(fontWeight: FontWeight.w500),
           items: navItems,
         ),
       ),

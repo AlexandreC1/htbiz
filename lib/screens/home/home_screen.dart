@@ -8,11 +8,9 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/offline_banner.dart';
 import '../../services/connectivity_service.dart';
 import '../../models/business_model.dart';
-import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../../widgets/htbiz_logo.dart';
-import '../business/add_business_screen.dart';
 import '../business/business_detail_screen.dart';
 import '../main_shell.dart';
 import '../notifications/notifications_screen.dart';
@@ -33,7 +31,6 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   String _searchQuery = '';
   String? _selectedCategory;
-  UserProfile? _userProfile;
   Set<String> _favoriteIds = {};
   bool _showFavoritesOnly = false;
   bool _sortByDistance = false;
@@ -86,7 +83,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ]);
       if (mounted) {
         setState(() {
-          _userProfile = results[0] as UserProfile?;
+          // results[0] is UserProfile (unused for now)
           _favoriteIds = results[1] as Set<String>;
         });
       }
@@ -196,21 +193,55 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
-    final isGuest = user?.isAnonymous ?? true;
-    final isBusinessOwner = !isGuest && (_userProfile?.isBusinessOwner ?? false);
     final localization = Provider.of<LocalizationService>(context);
     final isLoggedIn = user != null && !(user.isAnonymous);
 
     final List<Map<String, dynamic>> categories = [
-      {'key': 'all', 'label': localization.t('all'), 'icon': Icons.apps_rounded},
-      {'key': 'restaurant', 'label': localization.t('restaurant'), 'icon': Icons.restaurant_rounded},
-      {'key': 'hotel', 'label': localization.t('hotel'), 'icon': Icons.hotel_rounded},
-      {'key': 'shop', 'label': localization.t('shop'), 'icon': Icons.shopping_bag_rounded},
-      {'key': 'service', 'label': localization.t('service'), 'icon': Icons.build_rounded},
-      {'key': 'entertainment', 'label': localization.t('entertainment'), 'icon': Icons.celebration_rounded},
-      {'key': 'healthcare', 'label': localization.t('healthcare'), 'icon': Icons.local_hospital_rounded},
-      {'key': 'education', 'label': localization.t('education'), 'icon': Icons.school_rounded},
-      {'key': 'other', 'label': localization.t('other'), 'icon': Icons.more_horiz_rounded},
+      {
+        'key': 'all',
+        'label': localization.t('all'),
+        'icon': Icons.apps_rounded
+      },
+      {
+        'key': 'restaurant',
+        'label': localization.t('restaurant'),
+        'icon': Icons.restaurant_rounded
+      },
+      {
+        'key': 'hotel',
+        'label': localization.t('hotel'),
+        'icon': Icons.hotel_rounded
+      },
+      {
+        'key': 'shop',
+        'label': localization.t('shop'),
+        'icon': Icons.shopping_bag_rounded
+      },
+      {
+        'key': 'service',
+        'label': localization.t('service'),
+        'icon': Icons.build_rounded
+      },
+      {
+        'key': 'entertainment',
+        'label': localization.t('entertainment'),
+        'icon': Icons.celebration_rounded
+      },
+      {
+        'key': 'healthcare',
+        'label': localization.t('healthcare'),
+        'icon': Icons.local_hospital_rounded
+      },
+      {
+        'key': 'education',
+        'label': localization.t('education'),
+        'icon': Icons.school_rounded
+      },
+      {
+        'key': 'other',
+        'label': localization.t('other'),
+        'icon': Icons.more_horiz_rounded
+      },
     ];
 
     return Scaffold(
@@ -234,25 +265,26 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               !(supabase.auth.currentUser!.isAnonymous))
             IconButton(
               onPressed: () {
-                Navigator.of(context).push(
-                  FadeSlideRoute(
-                    page: NotificationsScreen(
-                      embedded: false,
-                      shell: widget.shell,
-                    ),
-                  ),
-                ).then((_) => widget.shell?.refreshNotificationCount());
+                Navigator.of(context)
+                    .push(
+                      FadeSlideRoute(
+                        page: NotificationsScreen(
+                          embedded: false,
+                          shell: widget.shell,
+                        ),
+                      ),
+                    )
+                    .then((_) => widget.shell?.refreshNotificationCount());
               },
-              icon: widget.shell != null &&
-                      widget.shell!.mounted
+              icon: widget.shell != null && widget.shell!.mounted
                   ? Badge(
-                      isLabelVisible: (widget.shell as MainShellState)
-                              .unreadNotifications >
-                          0,
+                      isLabelVisible:
+                          (widget.shell as MainShellState).unreadNotifications >
+                              0,
                       label: Text(
                         '${(widget.shell as MainShellState).unreadNotifications}',
-                        style: const TextStyle(
-                            fontSize: 10, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.white),
                       ),
                       child: const Icon(Icons.notifications_outlined),
                     )
@@ -278,8 +310,8 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Icons.search_rounded,
                   color: Colors.grey[500],
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -324,8 +356,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     selected: _showFavoritesOnly,
                     activeColor: Colors.red,
                     onTap: () {
-                      setState(
-                          () => _showFavoritesOnly = !_showFavoritesOnly);
+                      setState(() => _showFavoritesOnly = !_showFavoritesOnly);
                       _filterBusinesses();
                     },
                   ),
@@ -344,8 +375,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       activeColor: AppColors.primary,
                       onTap: () {
                         setState(() {
-                          _selectedCategory =
-                              key == 'all' ? null : key;
+                          _selectedCategory = key == 'all' ? null : key;
                         });
                         _filterBusinesses();
                       },
@@ -374,14 +404,15 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           animation: _listAnimController,
                           builder: (context, _) {
                             return ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(
-                                  16, 0, 16, 100),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 100),
                               itemCount: _filteredBusinesses.length,
                               itemBuilder: (context, index) {
                                 final business = _filteredBusinesses[index];
                                 // Staggered fade-in per item
                                 final itemDelay = (index * 0.1).clamp(0.0, 0.6);
-                                final itemEnd = (itemDelay + 0.4).clamp(0.0, 1.0);
+                                final itemEnd =
+                                    (itemDelay + 0.4).clamp(0.0, 1.0);
                                 final itemAnimation = CurvedAnimation(
                                   parent: _listAnimController,
                                   curve: Interval(itemDelay, itemEnd,
@@ -421,18 +452,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      floatingActionButton: isBusinessOwner
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  FadeSlideRoute(page: const AddBusinessScreen()),
-                ).then((_) => _loadBusinesses());
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: Text(localization.t('add_business')),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 
@@ -626,9 +646,7 @@ class _FilterPill extends StatelessWidget {
         curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected
-              ? activeColor.withValues(alpha: 0.12)
-              : Colors.white,
+          color: selected ? activeColor.withValues(alpha: 0.12) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? activeColor : Colors.grey.shade300,

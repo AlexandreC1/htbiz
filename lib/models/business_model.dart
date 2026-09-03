@@ -79,7 +79,9 @@ class Business {
     };
     if (latitude != null) map['latitude'] = latitude;
     if (longitude != null) map['longitude'] = longitude;
-    if (verificationStatus != 'none') map['verification_status'] = verificationStatus;
+    if (verificationStatus != 'none') {
+      map['verification_status'] = verificationStatus;
+    }
     if (patentDocUrl != null) map['patent_doc_url'] = patentDocUrl;
     return map;
   }
