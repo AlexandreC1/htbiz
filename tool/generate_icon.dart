@@ -1,7 +1,11 @@
 // ignore_for_file: avoid_print
 import 'dart:io';
+// dart:ui is imported twice on purpose: unprefixed for the plain value types
+// (Color, Rect, Paint...), and aliased for the names this script already
+// qualifies (ui.Canvas, ui.Gradient). Without the unprefixed import every one
+// of those types is undefined and `flutter analyze` fails on this file.
+import 'dart:ui';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 
 /// Brand palette — must match lib/widgets/htbiz_logo.dart
 const Color oceanDeep = Color(0xFF0E3A5C);
@@ -23,9 +27,9 @@ void _paint(ui.Canvas canvas, double w, double h) {
 
   // 2) Base gradient
   final basePaint = Paint()
-    ..shader = const ui.Gradient.linear(
+    ..shader = ui.Gradient.linear(
       Offset.zero,
-      Offset(1, 1), // will be overridden by matrix
+      const Offset(1, 1), // will be overridden by matrix
       [oceanDeep, oceanMid, tealAccent, goldAccent],
       [0.0, 0.45, 0.75, 1.0],
     );
@@ -149,9 +153,9 @@ void _drawStorefrontBar(ui.Canvas canvas, double w, double h) {
       Offset(left, top),
       Offset(left + barWidth, top),
       [
-        Color.fromRGBO(goldAccent.red, goldAccent.green, goldAccent.blue, 0.0),
+        goldAccent.withValues(alpha: 0.0),
         goldHighlight,
-        Color.fromRGBO(goldAccent.red, goldAccent.green, goldAccent.blue, 0.0),
+        goldAccent.withValues(alpha: 0.0),
       ],
     );
   canvas.drawRRect(bar, paint);
@@ -161,7 +165,7 @@ Future<void> main() async {
   const size = 1024.0;
 
   final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder, Rect.fromLTWH(0, 0, size, size));
+  final canvas = ui.Canvas(recorder, const Rect.fromLTWH(0, 0, size, size));
 
   _paint(canvas, size, size);
 

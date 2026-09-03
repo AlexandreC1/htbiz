@@ -10,6 +10,7 @@ import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../../utils/input_sanitizer.dart';
+import '../../config/maps_config.dart';
 
 class EditBusinessScreen extends StatefulWidget {
   final Business business;
@@ -183,8 +184,6 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     );
   }
 
-  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
-
   /// Geocode an address to lat/lng. Tries Google first, then Nominatim.
   Future<Map<String, double>?> _geocodeAddress(String address) async {
     final lower = address.toLowerCase();
@@ -197,7 +196,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
     try {
       final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
         'address': query,
-        'key': _mapsApiKey,
+        'key': MapsConfig.apiKey,
       });
       final client = HttpClient();
       final request = await client.getUrl(uri);

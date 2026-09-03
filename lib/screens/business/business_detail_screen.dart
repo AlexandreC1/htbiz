@@ -14,6 +14,7 @@ import '../../models/review_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import 'edit_business_screen.dart';
+import '../../config/maps_config.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final String businessId;
@@ -108,13 +109,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
   }
 
-  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
-
   Future<LatLng?> _geocodeAddress(String address) async {
     try {
       final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
         'address': address,
-        'key': _mapsApiKey,
+        'key': MapsConfig.apiKey,
       });
       final client = HttpClient();
       final request = await client.getUrl(uri);

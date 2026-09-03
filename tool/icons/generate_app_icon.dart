@@ -1,5 +1,9 @@
 // Generates the launcher PNGs from the in-app HTBizLogo painter.
-// Run with: flutter test test/generate_app_icon_test.dart
+// Run with: flutter test tool/icons/generate_app_icon.dart
+//
+// This is a generator, not a test. It lived in test/ and so ran on every
+// `flutter test`, rewriting the committed PNGs below as a side effect — which
+// is why the launcher icons kept showing up as modified in git.
 //
 // Outputs:
 //   assets/icon/app_icon.png             — full 1024x1024 logo
@@ -80,12 +84,36 @@ void _paintPalm(Canvas canvas, Offset c, double r) {
 
   final top = Offset(c.dx + r * 0.05, c.dy - r * 0.18);
   final fronds = <List<Offset>>[
-    [top, Offset(c.dx - r * 0.55, c.dy - r * 0.55), Offset(c.dx - r * 0.85, c.dy - r * 0.35)],
-    [top, Offset(c.dx - r * 0.2, c.dy - r * 0.75), Offset(c.dx - r * 0.15, c.dy - r * 1.0)],
-    [top, Offset(c.dx + r * 0.35, c.dy - r * 0.75), Offset(c.dx + r * 0.55, c.dy - r * 0.95)],
-    [top, Offset(c.dx + r * 0.6, c.dy - r * 0.35), Offset(c.dx + r * 0.95, c.dy - r * 0.15)],
-    [top, Offset(c.dx + r * 0.45, c.dy + r * 0.0), Offset(c.dx + r * 0.85, c.dy + r * 0.2)],
-    [top, Offset(c.dx - r * 0.4, c.dy - r * 0.25), Offset(c.dx - r * 0.7, c.dy + r * 0.05)],
+    [
+      top,
+      Offset(c.dx - r * 0.55, c.dy - r * 0.55),
+      Offset(c.dx - r * 0.85, c.dy - r * 0.35)
+    ],
+    [
+      top,
+      Offset(c.dx - r * 0.2, c.dy - r * 0.75),
+      Offset(c.dx - r * 0.15, c.dy - r * 1.0)
+    ],
+    [
+      top,
+      Offset(c.dx + r * 0.35, c.dy - r * 0.75),
+      Offset(c.dx + r * 0.55, c.dy - r * 0.95)
+    ],
+    [
+      top,
+      Offset(c.dx + r * 0.6, c.dy - r * 0.35),
+      Offset(c.dx + r * 0.95, c.dy - r * 0.15)
+    ],
+    [
+      top,
+      Offset(c.dx + r * 0.45, c.dy + r * 0.0),
+      Offset(c.dx + r * 0.85, c.dy + r * 0.2)
+    ],
+    [
+      top,
+      Offset(c.dx - r * 0.4, c.dy - r * 0.25),
+      Offset(c.dx - r * 0.7, c.dy + r * 0.05)
+    ],
   ];
   for (final f in fronds) {
     final p = Path()..moveTo(f[0].dx, f[0].dy);

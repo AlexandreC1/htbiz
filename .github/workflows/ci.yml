@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Analyze & test the app
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: stable
+          cache: true
+
+      # .env is gitignored, so a checkout has no asset at the path pubspec
+      # declares. Without this the build fails before analysis even starts.
+      - name: Create a placeholder .env
+        run: cp .env.example .env
+
+      - run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      # Errors and warnings fail the build; infos do not. Eight pre-existing
+      # use_build_context_synchronously infos in the review and edit screens are
+      # real but need an async-gap audit to fix properly. Drop this flag once
+      # they are cleared.
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - run: flutter test
+
+  database:
+    name: Replay migrations & assert security invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Replays every migration from an empty database, applies the hardening
+      # migration twice to prove idempotency, then asserts that each fixed
+      # vulnerability stays fixed.
+      - name: Run the database test suite
+        run: bash supabase/tests/run.sh
+
+  edge-functions:
+    name: Type-check edge functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.45.x
+
+      - name: Check
+        run: |
+          for fn in supabase/functions/*/index.ts; do
+            echo "==> $fn"
+            deno check --no-lock "$fn"
+          done

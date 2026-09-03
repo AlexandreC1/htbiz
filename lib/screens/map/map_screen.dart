@@ -11,6 +11,7 @@ import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/business_detail_screen.dart';
 import '../../main.dart';
+import '../../config/maps_config.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -33,8 +34,6 @@ class _MapScreenState extends State<MapScreen> {
   String? _selectedCategory;
   String? _tappedAddress;
   bool _isReverseGeocoding = false;
-
-  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
 
   // Default to Port-au-Prince, Haiti
   static const _defaultCenter = LatLng(18.5944, -72.3074);
@@ -243,7 +242,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
         'address': query,
-        'key': _mapsApiKey,
+        'key': MapsConfig.apiKey,
       });
       final client = HttpClient();
       final request = await client.getUrl(uri);
@@ -340,7 +339,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
         'latlng': '${position.latitude},${position.longitude}',
-        'key': _mapsApiKey,
+        'key': MapsConfig.apiKey,
       });
       final client = HttpClient();
       final request = await client.getUrl(uri);

@@ -1,6 +1,21 @@
 # Environment / Secrets
 .env
 *.env.local
+# Firebase & Google service configs: they carry project identifiers and API
+# keys that should be provisioned per-environment, not baked into the repo.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+**/*-service-account*.json
+*.keystore
+*.jks
+key.properties
+
+# Node tooling (icon generation, PDF parsing scripts)
+node_modules/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
 
 # Miscellaneous
 *.class

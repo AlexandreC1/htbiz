@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
+  }
+}

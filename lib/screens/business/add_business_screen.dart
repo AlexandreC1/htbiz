@@ -10,6 +10,7 @@ import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../../utils/input_sanitizer.dart';
+import '../../config/maps_config.dart';
 
 class AddBusinessScreen extends StatefulWidget {
   const AddBusinessScreen({super.key});
@@ -160,8 +161,6 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
     }
   }
 
-  static const String _mapsApiKey = 'AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA';
-
   /// Geocode an address to lat/lng. Tries Google first, then Nominatim.
   Future<Map<String, double>?> _geocodeAddress(String address) async {
     // Bias towards Haiti
@@ -176,7 +175,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
     try {
       final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
         'address': query,
-        'key': _mapsApiKey,
+        'key': MapsConfig.apiKey,
       });
       final client = HttpClient();
       final request = await client.getUrl(uri);

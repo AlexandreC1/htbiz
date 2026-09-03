@@ -109,6 +109,9 @@ class LocalizationService extends ChangeNotifier {
       'website_optional': 'Website (Optional)',
       'hours_optional': 'Opening Hours (Optional)',
       'add_business_photo': 'Add Business Photo',
+      'add_photo': 'Add Photo',
+      'delete_photo': 'Delete Photo',
+      'delete_photo_confirm': 'Remove this photo from your business?',
       'tap_to_select': 'Tap to select',
       'please_enter_business_name': 'Please enter business name',
       'please_enter_description': 'Please enter description',
@@ -190,7 +193,8 @@ class LocalizationService extends ChangeNotifier {
       'check_in': 'Check In',
       'checked_in': 'Checked In',
       'verified_visit': 'Verified Visit',
-      'check_in_success': 'You checked in! Your reviews will be marked as verified.',
+      'check_in_success':
+          'You checked in! Your reviews will be marked as verified.',
       'already_checked_in': 'You already checked in to this business.',
       'sign_in_to_like': 'Sign in to like reviews',
       'sign_in_to_check_in': 'Sign in to check in',
@@ -198,11 +202,14 @@ class LocalizationService extends ChangeNotifier {
       // Business verification
       'verified_business': 'Verified Business',
       'upload_patent': 'Upload Business Patent',
-      'upload_patent_description': 'Upload a photo of your business patent (patente) to get verified. This helps build trust with customers.',
+      'upload_patent_description':
+          'Upload a photo of your business patent (patente) to get verified. This helps build trust with customers.',
       'uploading_patent': 'Uploading patent document...',
-      'verification_submitted': 'Verification submitted! We will review your document shortly.',
+      'verification_submitted':
+          'Verification submitted! We will review your document shortly.',
       'verification_pending': 'Verification under review',
-      'verification_rejected': 'Verification was rejected. Please try again with a clearer document.',
+      'verification_rejected':
+          'Verification was rejected. Please try again with a clearer document.',
       'not_verified_hint': 'Upload your patent to get verified',
       'verify_now': 'Verify',
 
@@ -210,6 +217,71 @@ class LocalizationService extends ChangeNotifier {
       'map_view': 'Map',
       'my_location': 'My Location',
       'on_map': 'businesses on map',
+      'search_address': 'Search an address...',
+      'address_not_found': 'Address not found',
+
+      // Forgot / Reset Password
+      'forgot_password': 'Forgot Password',
+      'reset_password': 'Reset Password',
+      'reset_password_description':
+          'Enter your email address and we will send you a link to reset your password.',
+      'send_link': 'Send Link',
+      'back_to_login': 'Back to Login',
+      'email_sent': 'Email Sent!',
+      'reset_link_sent_to': 'We sent a reset link to:',
+      'check_inbox':
+          'Please check your inbox and click the link to reset your password.',
+      'check_spam': 'Note: Also check your spam folder.',
+      'resend_email': 'Resend Email',
+      'new_password': 'New Password',
+      'create_new_password': 'Create a New Password',
+      'new_password_description':
+          'Your new password must be different from previous passwords.',
+      'password_hint': 'Minimum 8 characters',
+      'password_reset_success': 'Password Reset!',
+      'password_reset_success_message':
+          'Your password has been changed successfully. You can now sign in with your new password.',
+      'link_expired': 'Link Invalid or Expired',
+      'link_expired_description':
+          'This reset link is no longer valid. Links expire after 1 hour.',
+      'request_new_link': 'Request a New Link',
+      'error_occurred': 'An error occurred',
+      'link_expired_error': 'The link has expired. Please request a new link.',
+      'password_must_differ':
+          'The new password must be different from the old one',
+
+      // Onboarding
+      'welcome_to_htbiz': 'Welcome to HTBIZ!',
+      'how_will_you_use': 'How will you use HTBIZ?',
+      'im_business_owner': "I'm a Business Owner",
+      'im_client': "I'm a Client",
+      'owner_description':
+          'List and manage your business, upload photos, respond to reviews',
+      'client_description': 'Discover local businesses, read and write reviews',
+      'can_change_later': 'You can change this later in your profile.',
+      'confirm_email_then_login':
+          'Please check your email and confirm your account, then log in.',
+
+      // Edit Business
+      'business_updated_success': 'Business updated successfully!',
+      'update_business': 'Update Business',
+      'editing': 'Editing',
+
+      // Review dialog
+      'edit_reply': 'Edit Reply',
+      'reply_to_review': 'Reply to Review',
+      'write_reply': 'Write your reply...',
+      'delete_reply': 'Delete Reply',
+      'post_reply': 'Post Reply',
+      'add_photos_optional': 'Add Photos (Optional)',
+      'add': 'Add',
+      'sign_in_to_favorite': 'Sign in to save favorites',
+      'photo_updated': 'Photo updated',
+      'name_updated': 'Name updated',
+      'too_many_attempts': 'Too many attempts. Try again in',
+      'business_not_found': 'Business not found',
+      'loading_map': 'Loading map...',
+      'google_sign_in_failed': 'Google sign-in failed',
 
       // Navigation & Profile
       'home': 'Home',
@@ -223,8 +295,10 @@ class LocalizationService extends ChangeNotifier {
       'client': 'Client',
       'switch': 'Switch',
       'change_role': 'Change Account Type',
-      'switch_to_owner_desc': 'Switch to Business Owner? You will be able to list and manage businesses.',
-      'switch_to_client_desc': 'Switch to Client? You will no longer be able to add businesses.',
+      'switch_to_owner_desc':
+          'Switch to Business Owner? You will be able to list and manage businesses.',
+      'switch_to_client_desc':
+          'Switch to Client? You will no longer be able to add businesses.',
       'confirm': 'Confirm',
       'guest': 'Guest',
       'sign_out': 'Sign Out',
@@ -301,6 +375,9 @@ class LocalizationService extends ChangeNotifier {
       'website_optional': 'Site web (Optionnel)',
       'hours_optional': 'Heures d\'ouverture (Optionnel)',
       'add_business_photo': 'Ajouter une photo',
+      'add_photo': 'Ajouter photo',
+      'delete_photo': 'Supprimer la photo',
+      'delete_photo_confirm': 'Retirer cette photo de votre entreprise ?',
       'tap_to_select': 'Appuyez pour sélectionner',
       'please_enter_business_name': 'Veuillez entrer le nom de l\'entreprise',
       'please_enter_description': 'Veuillez entrer une description',
@@ -339,7 +416,8 @@ class LocalizationService extends ChangeNotifier {
       'account_created': 'Compte créé! Veuillez vérifier votre email.',
       'error_loading_businesses': 'Erreur lors du chargement des entreprises',
       'error_loading_business': 'Erreur lors du chargement de l\'entreprise',
-      'offline_showing_saved': 'Hors ligne — affichage des données enregistrées',
+      'offline_showing_saved':
+          'Hors ligne — affichage des données enregistrées',
       'retry': 'Réessayer',
 
       // Notifications
@@ -383,7 +461,8 @@ class LocalizationService extends ChangeNotifier {
       'check_in': 'S\'enregistrer',
       'checked_in': 'Enregistré',
       'verified_visit': 'Visite vérifiée',
-      'check_in_success': 'Enregistrement réussi! Vos avis seront marqués comme vérifiés.',
+      'check_in_success':
+          'Enregistrement réussi! Vos avis seront marqués comme vérifiés.',
       'already_checked_in': 'Vous êtes déjà enregistré dans cette entreprise.',
       'sign_in_to_like': 'Connectez-vous pour aimer les avis',
       'sign_in_to_check_in': 'Connectez-vous pour vous enregistrer',
@@ -391,11 +470,14 @@ class LocalizationService extends ChangeNotifier {
       // Business verification
       'verified_business': 'Entreprise vérifiée',
       'upload_patent': 'Téléverser la patente',
-      'upload_patent_description': 'Téléversez une photo de votre patente commerciale pour être vérifié. Cela renforce la confiance des clients.',
+      'upload_patent_description':
+          'Téléversez une photo de votre patente commerciale pour être vérifié. Cela renforce la confiance des clients.',
       'uploading_patent': 'Téléversement de la patente...',
-      'verification_submitted': 'Vérification soumise! Nous examinerons votre document sous peu.',
+      'verification_submitted':
+          'Vérification soumise! Nous examinerons votre document sous peu.',
       'verification_pending': 'Vérification en cours d\'examen',
-      'verification_rejected': 'Vérification refusée. Veuillez réessayer avec un document plus clair.',
+      'verification_rejected':
+          'Vérification refusée. Veuillez réessayer avec un document plus clair.',
       'not_verified_hint': 'Téléversez votre patente pour être vérifié',
       'verify_now': 'Vérifier',
 
@@ -403,6 +485,74 @@ class LocalizationService extends ChangeNotifier {
       'map_view': 'Carte',
       'my_location': 'Ma position',
       'on_map': 'entreprises sur la carte',
+      'search_address': 'Rechercher une adresse...',
+      'address_not_found': 'Adresse introuvable',
+
+      // Forgot / Reset Password
+      'forgot_password': 'Mot de passe oublié',
+      'reset_password': 'Nouveau mot de passe',
+      'reset_password_description':
+          'Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
+      'send_link': 'Envoyer le lien',
+      'back_to_login': 'Retour à la connexion',
+      'email_sent': 'Email envoyé!',
+      'reset_link_sent_to': 'Nous avons envoyé un lien de réinitialisation à:',
+      'check_inbox':
+          'Veuillez vérifier votre boîte de réception et cliquer sur le lien pour réinitialiser votre mot de passe.',
+      'check_spam': 'Remarque: Vérifiez également votre dossier spam.',
+      'resend_email': 'Renvoyer l\'email',
+      'new_password': 'Nouveau mot de passe',
+      'create_new_password': 'Créer un nouveau mot de passe',
+      'new_password_description':
+          'Votre nouveau mot de passe doit être différent des mots de passe précédents.',
+      'password_hint': 'Minimum 8 caractères',
+      'password_reset_success': 'Mot de passe réinitialisé!',
+      'password_reset_success_message':
+          'Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+      'link_expired': 'Lien invalide ou expiré',
+      'link_expired_description':
+          'Ce lien de réinitialisation n\'est plus valide. Les liens expirent après 1 heure.',
+      'request_new_link': 'Demander un nouveau lien',
+      'error_occurred': 'Une erreur est survenue',
+      'link_expired_error':
+          'Le lien a expiré. Veuillez demander un nouveau lien.',
+      'password_must_differ':
+          'Le nouveau mot de passe doit être différent de l\'ancien',
+
+      // Onboarding
+      'welcome_to_htbiz': 'Bienvenue à HTBIZ!',
+      'how_will_you_use': 'Comment utiliserez-vous HTBIZ?',
+      'im_business_owner': 'Je suis propriétaire',
+      'im_client': 'Je suis client',
+      'owner_description':
+          'Listez et gérez votre entreprise, téléversez des photos, répondez aux avis',
+      'client_description':
+          'Découvrez les entreprises locales, lisez et écrivez des avis',
+      'can_change_later':
+          'Vous pouvez changer cela plus tard dans votre profil.',
+      'confirm_email_then_login':
+          'Veuillez vérifier votre email et confirmer votre compte, puis connectez-vous.',
+
+      // Edit Business
+      'business_updated_success': 'Entreprise mise à jour avec succès!',
+      'update_business': 'Mettre à jour',
+      'editing': 'Modification',
+
+      // Review dialog
+      'edit_reply': 'Modifier la réponse',
+      'reply_to_review': 'Répondre à l\'avis',
+      'write_reply': 'Écrivez votre réponse...',
+      'delete_reply': 'Supprimer la réponse',
+      'post_reply': 'Publier',
+      'add_photos_optional': 'Ajouter des photos (Optionnel)',
+      'add': 'Ajouter',
+      'sign_in_to_favorite': 'Connectez-vous pour sauvegarder les favoris',
+      'photo_updated': 'Photo mise à jour',
+      'name_updated': 'Nom mis à jour',
+      'too_many_attempts': 'Trop de tentatives. Réessayez dans',
+      'business_not_found': 'Entreprise non trouvée',
+      'loading_map': 'Chargement de la carte...',
+      'google_sign_in_failed': 'Échec de la connexion Google',
 
       // Navigation & Profile
       'home': 'Accueil',
@@ -416,8 +566,10 @@ class LocalizationService extends ChangeNotifier {
       'client': 'Client',
       'switch': 'Changer',
       'change_role': 'Changer le type de compte',
-      'switch_to_owner_desc': 'Passer \u00e0 Propri\u00e9taire? Vous pourrez g\u00e9rer des entreprises.',
-      'switch_to_client_desc': 'Passer \u00e0 Client? Vous ne pourrez plus ajouter d\'entreprises.',
+      'switch_to_owner_desc':
+          'Passer \u00e0 Propri\u00e9taire? Vous pourrez g\u00e9rer des entreprises.',
+      'switch_to_client_desc':
+          'Passer \u00e0 Client? Vous ne pourrez plus ajouter d\'entreprises.',
       'confirm': 'Confirmer',
       'guest': 'Invit\u00e9',
       'sign_out': 'Se d\u00e9connecter',
@@ -493,6 +645,9 @@ class LocalizationService extends ChangeNotifier {
       'website_optional': 'Sit entènèt (Opsyonèl)',
       'hours_optional': 'Orè ouvèti (Opsyonèl)',
       'add_business_photo': 'Ajoute foto biznis la',
+      'add_photo': 'Ajoute foto',
+      'delete_photo': 'Efase foto',
+      'delete_photo_confirm': 'Retire foto sa nan biznis ou a?',
       'tap_to_select': 'Peze pou chwazi',
       'please_enter_business_name': 'Tanpri antre non biznis la',
       'please_enter_description': 'Tanpri antre yon deskripsyon',
@@ -582,11 +737,14 @@ class LocalizationService extends ChangeNotifier {
       // Business verification
       'verified_business': 'Biznis verifye',
       'upload_patent': 'Voye patant biznis',
-      'upload_patent_description': 'Voye yon foto patant biznis ou pou yo verifye ou. Sa ede kliyan yo fè ou konfyans.',
+      'upload_patent_description':
+          'Voye yon foto patant biznis ou pou yo verifye ou. Sa ede kliyan yo fè ou konfyans.',
       'uploading_patent': 'Ap voye patant lan...',
-      'verification_submitted': 'Verifikasyon soumèt! Nou pral egzamine dokiman ou talè.',
+      'verification_submitted':
+          'Verifikasyon soumèt! Nou pral egzamine dokiman ou talè.',
       'verification_pending': 'Verifikasyon ap revize',
-      'verification_rejected': 'Verifikasyon refize. Tanpri eseye ankò ak yon dokiman pi klè.',
+      'verification_rejected':
+          'Verifikasyon refize. Tanpri eseye ankò ak yon dokiman pi klè.',
       'not_verified_hint': 'Voye patant ou pou yo verifye ou',
       'verify_now': 'Verifye',
 
@@ -594,6 +752,63 @@ class LocalizationService extends ChangeNotifier {
       'map_view': 'Kat',
       'my_location': 'Pozisyon mwen',
       'on_map': 'biznis sou kat la',
+      'search_address': 'Chache yon adrès...',
+      'address_not_found': 'Adrès pa jwenn',
+
+      // Forgot / Reset Password
+      'forgot_password': 'Modpas bliye',
+      'reset_password': 'Nouvo modpas',
+      'reset_password_description':
+          'Antre adrès imèl ou epi nou pral voye yon lyen pou reinisyalize modpas ou.',
+      'send_link': 'Voye lyen',
+      'back_to_login': 'Retounen nan koneksyon',
+      'email_sent': 'Imèl voye!',
+      'reset_link_sent_to': 'Nou voye yon lyen reinisyalizasyon bay:',
+      'check_inbox':
+          'Tanpri tcheke bwat resepsyon ou epi klike sou lyen pou reinisyalize modpas ou.',
+      'check_spam': 'Remak: Tcheke dosye spam ou tou.',
+      'resend_email': 'Revoye imèl la',
+      'new_password': 'Nouvo modpas',
+      'create_new_password': 'Kreye yon nouvo modpas',
+      'new_password_description':
+          'Nouvo modpas ou dwe diferan de ansyen modpas yo.',
+      'password_hint': 'Minimòm 8 karaktè',
+      'password_reset_success': 'Modpas reinisyalize!',
+      'password_reset_success_message':
+          'Modpas ou chanje avèk siksè. Ou ka konekte kounye a ak nouvo modpas ou.',
+      'link_expired': 'Lyen envalid oswa ekspire',
+      'link_expired_description':
+          'Lyen reinisyalizasyon sa a pa valab ankò. Lyen yo ekspire apre 1 èdtan.',
+      'request_new_link': 'Mande yon nouvo lyen',
+      'error_occurred': 'Yon erè rive',
+      'link_expired_error': 'Lyen an ekspire. Tanpri mande yon nouvo lyen.',
+      'password_must_differ': 'Nouvo modpas la dwe diferan de ansyen an',
+
+      // Onboarding
+      'welcome_to_htbiz': 'Byenveni nan HTBIZ!',
+      'how_will_you_use': 'Kijan ou pral itilize HTBIZ?',
+      'im_business_owner': 'Mwen se yon Propriyetè',
+      'im_client': 'Mwen se yon Kliyan',
+      'owner_description': 'Mete ak jere biznis ou, voye foto, reponn reviw',
+      'client_description': 'Dekouvri biznis lokal, li ak ekri reviw',
+      'can_change_later': 'Ou ka chanje sa pita nan profil ou.',
+      'confirm_email_then_login':
+          'Tanpri tcheke imèl ou epi konfime kont ou, apre sa konekte.',
+
+      // Edit Business
+      'business_updated_success': 'Biznis mete ajou avèk siksè!',
+      'update_business': 'Mete ajou',
+      'editing': 'Modifikasyon',
+
+      // Review dialog
+      'edit_reply': 'Modifye repons',
+      'reply_to_review': 'Reponn reviw',
+      'write_reply': 'Ekri repons ou...',
+      'delete_reply': 'Efase repons',
+      'post_reply': 'Pibliye',
+      'add_photos_optional': 'Ajoute foto (Opsyonèl)',
+      'add': 'Ajoute',
+      'sign_in_to_favorite': 'Konekte pou sere favori',
 
       // Navigation & Profile
       'home': 'Lakay',
@@ -607,11 +822,19 @@ class LocalizationService extends ChangeNotifier {
       'client': 'Kliyan',
       'switch': 'Chanje',
       'change_role': 'Chanje tip kont',
-      'switch_to_owner_desc': 'Chanje an Propriyet\u00e8? Ou ap kapab jere biznis.',
-      'switch_to_client_desc': 'Chanje an Kliyan? Ou p ap kapab ajoute biznis ank\u00f2.',
+      'switch_to_owner_desc':
+          'Chanje an Propriyet\u00e8? Ou ap kapab jere biznis.',
+      'switch_to_client_desc':
+          'Chanje an Kliyan? Ou p ap kapab ajoute biznis ank\u00f2.',
       'confirm': 'Konfime',
       'guest': 'Envite',
       'sign_out': 'Dekonekte',
+      'photo_updated': 'Foto a chanje',
+      'name_updated': 'Non an chanje',
+      'too_many_attempts': 'Twòp esè. Eseye ankò nan',
+      'business_not_found': 'Nou pa jwenn biznis la',
+      'loading_map': 'Kat la ap chaje...',
+      'google_sign_in_failed': 'Koneksyon ak Google pa mache',
     },
   };
 }
