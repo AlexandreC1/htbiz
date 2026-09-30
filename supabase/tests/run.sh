@@ -10,7 +10,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 
-CONTAINER="htbiz-migration-test"
+CONTAINER="htbiz-migration-test-$$"
 PGPASSWORD_VALUE="postgres"
 IMAGE="postgres:17-alpine"
 
@@ -27,14 +27,25 @@ docker run -d --name "$CONTAINER" \
   "$IMAGE" >/dev/null
 
 echo -n "==> Waiting for Postgres"
+ready=0
 for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER" pg_isready -U postgres -d htbiz >/dev/null 2>&1; then
+  # The image starts a temporary socket-only server during initialization.
+  # pg_isready can accept that server before POSTGRES_DB exists. Require a
+  # successful query over TCP to the final server and the intended database.
+  if docker exec -e PGPASSWORD="$PGPASSWORD_VALUE" "$CONTAINER" \
+      psql -h 127.0.0.1 -U postgres -d htbiz -tAc 'SELECT 1' >/dev/null 2>&1; then
     echo " ready"
+    ready=1
     break
   fi
   echo -n "."
   sleep 1
 done
+if [ "$ready" -ne 1 ]; then
+  echo "Database did not become ready within 60 seconds" >&2
+  docker logs "$CONTAINER" >&2
+  exit 1
+fi
 
 run_sql() {
   local label="$1" file="$2" extra="${3:-}"
