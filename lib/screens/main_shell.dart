@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/user_profile.dart';
 import '../services/business_service.dart';
+import '../services/usage_analytics_service.dart';
 import '../services/localization_service.dart';
 import '../services/push_notification_service.dart';
 import 'home/home_screen.dart';
@@ -36,6 +37,9 @@ class MainShellState extends State<MainShell> {
     super.initState();
     _loadUserData();
     PushNotificationService.instance.init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _trackTab();
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -58,10 +62,22 @@ class MainShellState extends State<MainShell> {
     final pageCount = _isBusinessOwner ? 4 : 3;
     if (index >= 0 && index < pageCount) {
       setState(() => _currentIndex = index);
+      _trackTab();
     }
   }
 
   int get tabCount => _isBusinessOwner ? 4 : 3;
+
+  void _trackTab() {
+    final names = [
+      'home',
+      'map',
+      if (_isBusinessOwner) 'owner_dashboard',
+      'profile'
+    ];
+    UsageAnalyticsService.instance
+        .screen(names[_currentIndex], MediaQuery.sizeOf(context));
+  }
 
   void refreshNotificationCount() {
     _loadNotificationCount();
@@ -152,7 +168,7 @@ class MainShellState extends State<MainShell> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: navigateToTab,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.primary,

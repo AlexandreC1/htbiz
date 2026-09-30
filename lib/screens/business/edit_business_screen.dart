@@ -560,7 +560,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                 if (permission == LocationPermission.denied ||
                                     permission ==
                                         LocationPermission.deniedForever) {
-                                  if (mounted) {
+                                  if (ctx.mounted) {
                                     AppToast.warning(ctx,
                                         localization.t('location_unavailable'));
                                   }
@@ -578,7 +578,7 @@ class _EditBusinessScreenState extends State<EditBusinessScreen> {
                                       position.longitude.toStringAsFixed(6);
                                 });
                               } catch (e) {
-                                if (mounted) {
+                                if (ctx.mounted) {
                                   AppToast.warning(ctx,
                                       localization.t('location_unavailable'));
                                 }

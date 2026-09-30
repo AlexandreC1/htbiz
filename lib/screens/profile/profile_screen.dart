@@ -11,6 +11,7 @@ import '../../services/localization_service.dart';
 import '../../services/push_notification_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
+import 'usage_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final MainShellState? shell;
@@ -244,6 +245,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Settings section
                 _buildSectionHeader(localization.t('settings')),
                 _buildLanguageTile(localization),
+                if (!isGuest)
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: Text(localization.t('usage_privacy')),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (_) => const UsageSettingsScreen())),
+                  ),
 
                 const SizedBox(height: 16),
 

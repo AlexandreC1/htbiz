@@ -58,5 +58,11 @@ run_sql "Re-running hardening (idempotency check)" \
 
 run_sql "Security assertions" "$HERE/02_security_assertions.sql"
 
+for migration in "$ROOT"/supabase/migrations/20260930*.sql; do
+  run_sql "Feature migration" "$migration"
+  run_sql "Feature migration idempotency" "$migration"
+done
+run_sql "Search, reviews and analytics assertions" "$HERE/03_feature_assertions.sql"
+
 echo
 echo "==> All migrations applied and all assertions passed."

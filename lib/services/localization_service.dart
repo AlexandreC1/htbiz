@@ -39,6 +39,23 @@ class LocalizationService extends ChangeNotifier {
 
   static const Map<String, Map<String, String>> _translationsMap = {
     'en': {
+      'usage_users': 'Active users',
+      'usage_views': 'Screen views',
+      'usage_minutes': 'Active minutes',
+      'edit_review': 'Edit your review',
+      'load_more': 'Load more',
+      'usage_privacy': 'Usage and privacy',
+      'usage_opt_in': 'Share HTBiz usage data',
+      'usage_notice':
+          'Optional: share your account ID, request IP, phone OS, screen size, time spent on HTBiz screens, media selection events and approximate location when you use location features. Only platform administrators can view these data for 30 days. No photos, recordings or activity in other apps are collected. Turn this off at any time.',
+      'usage_delete': 'Stop sharing and delete my usage data',
+      'usage_deleted': 'Your usage data were deleted.',
+      'usage_failed':
+          'Usage data are unavailable. Check your connection and access, then retry.',
+      'usage_dashboard': 'Administrator usage dashboard',
+      'usage_window':
+          'Latest opted-in activity · last 30 days. Location is approximate. Missing fields mean not collected. IP proxy headers are unverified.',
+      'usage_empty': 'No shared activity yet.',
       // App General
       'app_name': 'HTBIZ',
       'app_tagline': 'Discover Local Businesses in Haiti',
@@ -304,6 +321,23 @@ class LocalizationService extends ChangeNotifier {
       'sign_out': 'Sign Out',
     },
     'fr': {
+      'usage_users': 'Utilisateurs actifs',
+      'usage_views': 'Écrans consultés',
+      'usage_minutes': 'Minutes actives',
+      'edit_review': 'Modifier votre avis',
+      'load_more': 'Afficher plus',
+      'usage_privacy': 'Utilisation et confidentialité',
+      'usage_opt_in': 'Partager mon utilisation de HTBiz',
+      'usage_notice':
+          'Facultatif : partager votre identifiant, IP, système, taille d’écran, temps dans HTBiz, sélections de médias et position approximative lors de l’utilisation de la localisation. Seuls les administrateurs y accèdent pendant 30 jours. Aucune photo, aucun enregistrement ni activité d’autres applications. Désactivable à tout moment.',
+      'usage_delete': 'Arrêter le partage et supprimer mes données',
+      'usage_deleted': 'Vos données d’utilisation ont été supprimées.',
+      'usage_failed':
+          'Données indisponibles. Vérifiez votre connexion et vos accès, puis réessayez.',
+      'usage_dashboard': 'Utilisation — administration',
+      'usage_window':
+          'Activité consentie récente · 30 derniers jours. Position approximative. Champs absents : non collectés. IP du proxy non vérifiées.',
+      'usage_empty': 'Aucune activité partagée.',
       // App General
       'app_name': 'HTBIZ',
       'app_tagline': 'Découvrez les entreprises locales en Haïti',
@@ -575,6 +609,23 @@ class LocalizationService extends ChangeNotifier {
       'sign_out': 'Se d\u00e9connecter',
     },
     'ht': {
+      'usage_users': 'Itilizatè aktif',
+      'usage_views': 'Ekran vizite',
+      'usage_minutes': 'Minit aktif',
+      'edit_review': 'Modifye avi ou',
+      'load_more': 'Montre plis',
+      'usage_privacy': 'Itilizasyon ak konfidansyalite',
+      'usage_opt_in': 'Pataje itilizasyon HTBiz mwen',
+      'usage_notice':
+          'Si ou vle: pataje idantifyan kont ou, IP, sistèm telefòn, gwosè ekran, tan nan HTBiz, seleksyon medya ak pozisyon apwoksimatif lè ou itilize lokalizasyon. Se administratè sèlman ki ka wè done sa yo pandan 30 jou. Nou pa kolekte foto, anrejistreman ni aktivite lòt aplikasyon. Ou ka sispann nenpòt lè.',
+      'usage_delete': 'Sispann pataje epi efase done mwen',
+      'usage_deleted': 'Done itilizasyon ou yo efase.',
+      'usage_failed':
+          'Done yo pa disponib. Verifye koneksyon ak aksè ou, epi eseye ankò.',
+      'usage_dashboard': 'Tablo itilizasyon administratè',
+      'usage_window':
+          'Dènye aktivite ak konsantman · 30 dènye jou. Pozisyon apwoksimatif. Chan vid: pa kolekte. IP pwoksi yo pa verifye.',
+      'usage_empty': 'Pa gen aktivite pataje ankò.',
       // App General
       'app_name': 'HTBIZ',
       'app_tagline': 'Dekouvri biznis lokal nan Ayiti',

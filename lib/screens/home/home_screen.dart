@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,6 +11,7 @@ import '../../services/connectivity_service.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/usage_analytics_service.dart';
 import '../../widgets/htbiz_logo.dart';
 import '../business/business_detail_screen.dart';
 import '../main_shell.dart';
@@ -29,6 +31,11 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Business> _businesses = [];
   List<Business> _filteredBusinesses = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = false;
+  String? _loadError;
+  Timer? _searchDebounce;
+  int _requestId = 0;
   String _searchQuery = '';
   String? _selectedCategory;
   Set<String> _favoriteIds = {};
@@ -69,6 +76,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     ConnectivityService.instance.removeListener(_onConnectivityChanged);
     _listAnimController.dispose();
     super.dispose();
@@ -123,6 +131,8 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const LocationSettings(accuracy: LocationAccuracy.medium),
       ).timeout(const Duration(seconds: 8));
       _userPosition = position;
+      unawaited(UsageAnalyticsService.instance.record('location_shared',
+          latitude: position.latitude, longitude: position.longitude));
       _calculateDistances();
       if (!mounted) return;
       setState(() => _sortByDistance = true);
@@ -152,31 +162,74 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadBusinesses() async {
-    setState(() => _isLoading = true);
-    // BusinessService falls back to the local cache when offline, so we only
-    // need to handle a successful return here. The OfflineBanner surfaces the
-    // offline state to the user instead of an error toast.
-    final businesses = await _businessService.getAllBusinesses();
     if (!mounted) return;
+    final requestId = ++_requestId;
     setState(() {
-      _businesses = businesses;
-      _filteredBusinesses = businesses;
-      _isLoading = false;
+      _isLoading = true;
+      _isLoadingMore = false;
+      _loadError = null;
     });
-    _listAnimController.forward(from: 0);
+    try {
+      final page = await _businessService.getBusinessPage(
+        search: _searchQuery,
+        category: _selectedCategory,
+        businessIds: _showFavoritesOnly ? _favoriteIds : null,
+      );
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _businesses = page.items;
+        _hasMore = page.hasMore;
+        _isLoading = false;
+      });
+      _calculateDistances();
+      _filterBusinesses();
+    } catch (error) {
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = error.toString();
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || _isLoadingMore || !_hasMore) return;
+    final requestId = _requestId;
+    setState(() => _isLoadingMore = true);
+    try {
+      final page = await _businessService.getBusinessPage(
+        offset: _businesses.length,
+        search: _searchQuery,
+        category: _selectedCategory,
+        businessIds: _showFavoritesOnly ? _favoriteIds : null,
+      );
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _businesses = [..._businesses, ...page.items];
+        _hasMore = page.hasMore;
+      });
+      _calculateDistances();
+      _filterBusinesses();
+    } catch (error) {
+      if (mounted && requestId == _requestId) {
+        AppToast.error(context, error.toString());
+      }
+    } finally {
+      if (mounted && requestId == _requestId) {
+        setState(() => _isLoadingMore = false);
+      }
+    }
   }
 
   void _filterBusinesses() {
     setState(() {
       _filteredBusinesses = _businesses.where((business) {
-        final matchesSearch =
-            business.name.toLowerCase().contains(_searchQuery.toLowerCase());
         final matchesCategory = _selectedCategory == null ||
             _selectedCategory == 'all' ||
             business.category.toLowerCase() == _selectedCategory!.toLowerCase();
         final matchesFavorites =
             !_showFavoritesOnly || _favoriteIds.contains(business.id);
-        return matchesSearch && matchesCategory && matchesFavorites;
+        return matchesCategory && matchesFavorites;
       }).toList();
 
       if (_sortByDistance && _userPosition != null) {
@@ -315,7 +368,10 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
-                _filterBusinesses();
+                _searchDebounce?.cancel();
+                ++_requestId;
+                _searchDebounce =
+                    Timer(const Duration(milliseconds: 300), _loadBusinesses);
               },
             ),
           ),
@@ -357,7 +413,8 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     activeColor: Colors.red,
                     onTap: () {
                       setState(() => _showFavoritesOnly = !_showFavoritesOnly);
-                      _filterBusinesses();
+                      _searchDebounce?.cancel();
+                      _loadBusinesses();
                     },
                   ),
                 ],
@@ -377,7 +434,8 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         setState(() {
                           _selectedCategory = key == 'all' ? null : key;
                         });
-                        _filterBusinesses();
+                        _searchDebounce?.cancel();
+                        _loadBusinesses();
                       },
                     ),
                   );
@@ -392,63 +450,81 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             child: _isLoading
                 ? _buildShimmerList()
-                : _filteredBusinesses.isEmpty
-                    ? _buildEmptyState(localization)
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          await Future.wait(
-                              [_loadBusinesses(), _loadProfile()]);
-                        },
-                        color: AppColors.primary,
-                        child: AnimatedBuilder(
-                          animation: _listAnimController,
-                          builder: (context, _) {
-                            return ListView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                              itemCount: _filteredBusinesses.length,
-                              itemBuilder: (context, index) {
-                                final business = _filteredBusinesses[index];
-                                // Staggered fade-in per item
-                                final itemDelay = (index * 0.1).clamp(0.0, 0.6);
-                                final itemEnd =
-                                    (itemDelay + 0.4).clamp(0.0, 1.0);
-                                final itemAnimation = CurvedAnimation(
-                                  parent: _listAnimController,
-                                  curve: Interval(itemDelay, itemEnd,
-                                      curve: Curves.easeOutCubic),
-                                );
+                : _loadError != null
+                    ? Center(
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_loadError!, textAlign: TextAlign.center),
+                          TextButton.icon(
+                            onPressed: _loadBusinesses,
+                            icon: const Icon(Icons.refresh),
+                            label: Text(localization.t('retry')),
+                          ),
+                        ],
+                      ))
+                    : _filteredBusinesses.isEmpty
+                        ? _buildEmptyState(localization)
+                        : RefreshIndicator(
+                            onRefresh: () async {
+                              await Future.wait(
+                                  [_loadBusinesses(), _loadProfile()]);
+                            },
+                            color: AppColors.primary,
+                            child: AnimatedBuilder(
+                              animation: _listAnimController,
+                              builder: (context, _) {
+                                return ListView.builder(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                                  itemCount: _filteredBusinesses.length +
+                                      (_hasMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (index == _filteredBusinesses.length) {
+                                      return _buildLoadMore(localization);
+                                    }
+                                    final business = _filteredBusinesses[index];
+                                    // Staggered fade-in per item
+                                    final itemDelay =
+                                        (index * 0.1).clamp(0.0, 0.6);
+                                    final itemEnd =
+                                        (itemDelay + 0.4).clamp(0.0, 1.0);
+                                    final itemAnimation = CurvedAnimation(
+                                      parent: _listAnimController,
+                                      curve: Interval(itemDelay, itemEnd,
+                                          curve: Curves.easeOutCubic),
+                                    );
 
-                                return FadeTransition(
-                                  opacity: itemAnimation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.08),
-                                      end: Offset.zero,
-                                    ).animate(itemAnimation),
-                                    child: _BusinessCard(
-                                      business: business,
-                                      distance: _sortByDistance
-                                          ? _distances[business.id]
-                                          : null,
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          FadeSlideRoute(
-                                            page: BusinessDetailScreen(
-                                              businessId: business.id,
-                                            ),
-                                          ),
-                                        ).then((_) => _loadBusinesses());
-                                      },
-                                    ),
-                                  ),
+                                    return FadeTransition(
+                                      opacity: itemAnimation,
+                                      child: SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 0.08),
+                                          end: Offset.zero,
+                                        ).animate(itemAnimation),
+                                        child: _BusinessCard(
+                                          business: business,
+                                          distance: _sortByDistance
+                                              ? _distances[business.id]
+                                              : null,
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              FadeSlideRoute(
+                                                page: BusinessDetailScreen(
+                                                  businessId: business.id,
+                                                ),
+                                              ),
+                                            ).then((_) => _loadBusinesses());
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                          ),
           ),
         ],
       ),
@@ -486,6 +562,7 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 8),
+            if (_hasMore) _buildLoadMore(localization),
             Text(
               localization.t('be_first_to_add'),
               style: GoogleFonts.poppins(
@@ -496,6 +573,19 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLoadMore(LocalizationService localization) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: _isLoadingMore
+          ? const Center(child: CircularProgressIndicator())
+          : OutlinedButton.icon(
+              onPressed: _loadMore,
+              icon: const Icon(Icons.expand_more),
+              label: Text(localization.t('load_more')),
+            ),
     );
   }
 

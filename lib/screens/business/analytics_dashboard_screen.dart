@@ -1,9 +1,11 @@
+import '../../widgets/business_stats_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
 import '../../models/review_model.dart';
+import '../../utils/business_statistics.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import 'business_detail_screen.dart';
@@ -62,13 +64,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   int get _totalReviews =>
-      _reviewsByBusiness.values.fold(0, (sum, list) => sum + list.length);
+      _businesses.fold(0, (sum, business) => sum + business.totalReviews);
 
   double get _overallRating {
-    if (_businesses.isEmpty) return 0;
-    final rated = _businesses.where((b) => b.totalReviews > 0);
-    if (rated.isEmpty) return 0;
-    return rated.map((b) => b.rating).reduce((a, b) => a + b) / rated.length;
+    return weightedBusinessRating(_businesses);
   }
 
   int get _totalFavorites =>
@@ -148,45 +147,16 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSummaryRow(LocalizationService localization) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.store,
-            value: '${_businesses.length}',
-            label: localization.t('your_businesses'),
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.reviews,
-            value: '$_totalReviews',
-            label: localization.t('total_reviews'),
-            color: Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.star,
-            value: _overallRating.toStringAsFixed(1),
-            label: localization.t('avg_rating'),
-            color: Colors.amber,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.favorite,
-            value: '$_totalFavorites',
-            label: localization.t('total_favorites'),
-            color: Colors.red,
-          ),
-        ),
-      ],
-    );
+    return BusinessStatsGrid(stats: [
+      BusinessStat(Icons.storefront_outlined, '${_businesses.length}',
+          localization.t('your_businesses')),
+      BusinessStat(Icons.reviews_outlined, '$_totalReviews',
+          localization.t('total_reviews')),
+      BusinessStat(Icons.star_outline, _overallRating.toStringAsFixed(1),
+          localization.t('avg_rating')),
+      BusinessStat(Icons.favorite_outline, '$_totalFavorites',
+          localization.t('total_favorites')),
+    ]);
   }
 
   Widget _buildRatingChart(LocalizationService localization) {
@@ -417,51 +387,6 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-
-  const _SummaryCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

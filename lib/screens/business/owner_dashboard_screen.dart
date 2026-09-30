@@ -1,3 +1,4 @@
+import '../../widgets/business_stats_grid.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,6 +7,7 @@ import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../models/review_model.dart';
+import '../../utils/business_statistics.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/push_notification_service.dart';
@@ -69,12 +71,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   int get _totalReviews =>
-      _reviewsByBusiness.values.fold(0, (sum, list) => sum + list.length);
+      _businesses.fold(0, (sum, business) => sum + business.totalReviews);
 
   double get _overallRating {
-    final rated = _businesses.where((b) => b.totalReviews > 0);
-    if (rated.isEmpty) return 0;
-    return rated.map((b) => b.rating).reduce((a, b) => a + b) / rated.length;
+    return weightedBusinessRating(_businesses);
   }
 
   int get _totalFavorites =>
@@ -366,78 +366,20 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   Widget _buildStatsRow(LocalizationService localization) {
-    return Row(
-      children: [
-        _buildStatCard(
-          Icons.store,
-          '${_businesses.length}',
-          localization.t('your_businesses'),
-          AppColors.primary,
-        ),
-        const SizedBox(width: 8),
-        _buildStatCard(
-          Icons.reviews,
-          '$_totalReviews',
-          localization.t('total_reviews'),
-          Colors.blue,
-        ),
-        const SizedBox(width: 8),
-        _buildStatCard(
-          Icons.star,
-          _overallRating.toStringAsFixed(1),
-          localization.t('avg_rating'),
-          Colors.amber,
-        ),
-        const SizedBox(width: 8),
-        _buildStatCard(
-          Icons.favorite,
-          '$_totalFavorites',
-          localization.t('total_favorites'),
-          Colors.red,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-      IconData icon, String value, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 9, color: Colors.grey),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
+    return BusinessStatsGrid(stats: [
+      BusinessStat(Icons.storefront_outlined, '${_businesses.length}',
+          localization.t('your_businesses')),
+      BusinessStat(Icons.reviews_outlined, '$_totalReviews',
+          localization.t('total_reviews')),
+      BusinessStat(Icons.star_outline, _overallRating.toStringAsFixed(1),
+          localization.t('avg_rating')),
+      BusinessStat(Icons.favorite_outline, '$_totalFavorites',
+          localization.t('total_favorites')),
+    ]);
   }
 
   Widget _buildBusinessTile(
       Business business, LocalizationService localization) {
-    final reviews = _reviewsByBusiness[business.id] ?? [];
     final favCount = _favoriteCounts[business.id] ?? 0;
 
     return Card(
@@ -527,7 +469,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                             Icon(Icons.reviews_outlined,
                                 size: 14, color: Colors.blue[400]),
                             const SizedBox(width: 2),
-                            Text('${reviews.length}',
+                            Text('${business.totalReviews}',
                                 style: const TextStyle(fontSize: 13)),
                             const SizedBox(width: 8),
                             Icon(Icons.favorite,
@@ -703,7 +645,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             subtitle: Text(
-              review.comment ?? '★' * review.rating,
+              review.comment ??
+                  '${localization.t('rating')}: ${review.rating}/5',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12),

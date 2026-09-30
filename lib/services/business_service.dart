@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import '../main.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/business_image_model.dart';
 import '../models/business_model.dart';
@@ -33,6 +32,9 @@ class PagedResult<T> {
 }
 
 class BusinessService {
+  BusinessService({SupabaseClient? client}) : _client = client;
+  final SupabaseClient? _client;
+  SupabaseClient get supabase => _client ?? Supabase.instance.client;
   final _cache = CacheService.instance;
 
   /// Default rows per request. Small enough to render fast on a slow link.
@@ -72,7 +74,13 @@ class BusinessService {
     int offset = 0,
     int limit = pageSize,
     String? category,
+    String? search,
+    Set<String>? businessIds,
   }) async {
+    final term = search?.trim() ?? '';
+    if (businessIds != null && businessIds.isEmpty) {
+      return const PagedResult(items: [], hasMore: false);
+    }
     try {
       // Ask for one extra row: if it comes back, there is another page.
       final rows = await Net.call(
@@ -80,10 +88,17 @@ class BusinessService {
           var query =
               supabase.from('businesses').select().isFilter('deleted_at', null);
           if (category != null && category.isNotEmpty) {
-            query = query.eq('category', category);
+            query = query.ilike('category', _escapeLikePattern(category));
+          }
+          if (businessIds != null) {
+            query = query.inFilter('id', businessIds.toList());
+          }
+          if (term.isNotEmpty) {
+            query = query.ilike('name', '%${_escapeLikePattern(term)}%');
           }
           return await query
               .order('created_at', ascending: false)
+              .order('id', ascending: true)
               .range(offset, offset + limit);
         },
         whileDoing: 'load businesses',
@@ -95,7 +110,10 @@ class BusinessService {
 
       // Only the first page is worth caching — it is what a cold, offline
       // launch renders.
-      if (offset == 0 && category == null) {
+      if (offset == 0 &&
+          category == null &&
+          term.isEmpty &&
+          businessIds == null) {
         await _cache.save('all_businesses', page);
       }
 
@@ -106,6 +124,8 @@ class BusinessService {
     } on AppException catch (error) {
       if (offset == 0 &&
           category == null &&
+          term.isEmpty &&
+          businessIds == null &&
           error.kind == AppErrorKind.network) {
         final cached = await _cache.readList('all_businesses');
         if (cached != null) {
@@ -150,6 +170,7 @@ class BusinessService {
           .from('businesses')
           .select()
           .ilike('name', pattern)
+          .isFilter('deleted_at', null)
           .order('created_at', ascending: false)
           .limit(limit),
       whileDoing: 'search businesses',
@@ -310,26 +331,49 @@ class BusinessService {
     }
   }
 
-  Future<Review> addReview(Review review) async {
+  Future<Review?> getMyReview(String businessId) async {
     final userId = _requireUserId;
+    final row = await Net.call(
+      () => supabase
+          .from('reviews')
+          .select()
+          .eq('business_id', businessId)
+          .eq('user_id', userId)
+          .order('created_at')
+          .limit(1)
+          .maybeSingle(),
+      whileDoing: 'load your review',
+    );
+    return row == null ? null : Review.fromJson(row);
+  }
+
+  Future<Review> addReview(Review review, {bool anonymous = false}) async {
+    _requireUserId;
+    if (review.rating < 1 || review.rating > 5) {
+      throw const AppException(
+          AppErrorKind.invalid, 'Choose a rating from 1 to 5.');
+    }
 
     // user_name, user_email and is_verified_visit are stamped by a BEFORE
     // INSERT trigger from the session and the check_ins table. Sending them
     // was pointless at best and a way to fake a "verified visit" badge at
     // worst, so they are dropped here.
-    final payload = review.toJson()
-      ..['user_id'] = userId
-      ..remove('user_name')
-      ..remove('user_email')
-      ..remove('is_verified_visit');
+    final payload = {
+      'p_business_id': review.businessId,
+      'p_rating': review.rating,
+      'p_comment': review.comment,
+      'p_image_urls': review.allImages,
+      'p_anonymous': anonymous,
+    };
 
     try {
       final response = await Net.call(
-        () => supabase.from('reviews').insert(payload).select().single(),
+        () => supabase.rpc('save_review', params: payload).single(),
         whileDoing: 'post your review',
       );
       await _cache.remove('reviews_${review.businessId}');
       await _cache.remove('business_${review.businessId}');
+      await _cache.remove('all_businesses');
       return Review.fromJson(response);
     } on AppException catch (error) {
       if (error.kind == AppErrorKind.duplicate) {

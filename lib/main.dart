@@ -13,6 +13,7 @@ import 'screens/auth/reset_password_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/connectivity_service.dart';
 import 'services/localization_service.dart';
+import 'services/usage_analytics_service.dart';
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +76,11 @@ void main() async {
   }
 
   ConnectivityService.instance.start();
+  try {
+    await UsageAnalyticsService.instance.initialize();
+  } catch (_) {
+    // Optional analytics must never prevent the app from opening.
+  }
 
   // Framework errors that reach the top level: log them rather than letting a
   // release build show a grey screen with no trace.

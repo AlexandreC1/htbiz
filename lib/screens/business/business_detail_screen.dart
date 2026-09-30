@@ -12,6 +12,7 @@ import '../../models/business_model.dart';
 import '../../models/business_image_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
+import '../../services/usage_analytics_service.dart';
 import '../../services/localization_service.dart';
 import 'edit_business_screen.dart';
 import '../../config/maps_config.dart';
@@ -72,6 +73,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         (user != null && !user.isAnonymous) ? user.id : null,
       );
 
+      if (!mounted) return;
       setState(() {
         _business = business;
         _reviews = reviews;
@@ -81,7 +83,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       if (mounted) {
         final localization =
             Provider.of<LocalizationService>(context, listen: false);
@@ -338,7 +340,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
   }
 
-  void _showAddReviewDialog() {
+  Future<void> _showAddReviewDialog() async {
+    if (_isSubmittingReview) return;
     final user = supabase.auth.currentUser;
     final localization =
         Provider.of<LocalizationService>(context, listen: false);
@@ -348,292 +351,310 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       return;
     }
 
-    int selectedRating = 5;
-    final commentController = TextEditingController();
+    Review? existingReview;
+    setState(() => _isSubmittingReview = true);
+    try {
+      existingReview = await _businessService.getMyReview(widget.businessId);
+    } catch (error) {
+      if (mounted) AppToast.error(context, error.toString());
+      return;
+    } finally {
+      if (mounted) setState(() => _isSubmittingReview = false);
+    }
+    if (!mounted) return;
+    int selectedRating = existingReview?.rating ?? 5;
+    final commentController =
+        TextEditingController(text: existingReview?.comment);
     final List<File> selectedReviewImages = [];
     const int maxReviewImages = 5;
     bool isUploadingImage = false;
-    bool isAnonymous = false;
+    bool isAnonymous = existingReview?.isAnonymous ?? false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(localization.t('add_review')),
-          contentPadding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0),
-          content: Container(
-            width: double.maxFinite,
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.5,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Rating Section
-                  Text(
-                    localization.t('rating'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+        builder: (context, setDialogState) => PopScope(
+          canPop: !_isSubmittingReview,
+          child: AlertDialog(
+            title: Text(localization
+                .t(existingReview == null ? 'add_review' : 'edit_review')),
+            contentPadding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 0),
+            content: Container(
+              width: double.maxFinite,
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Rating Section
+                    Text(
+                      localization.t('rating'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
-                        ),
-                        onPressed: () {
-                          setDialogState(() {
-                            selectedRating = index + 1;
-                          });
-                        },
-                        icon: Icon(
-                          index < selectedRating
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: Colors.amber,
-                          size: 28,
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Comment Section
-                  TextField(
-                    controller: commentController,
-                    decoration: InputDecoration(
-                      labelText: localization.t('comment_optional'),
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.all(8),
-                      isDense: true,
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedRating = index + 1;
+                            });
+                          },
+                          icon: Icon(
+                            index < selectedRating
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: Colors.amber,
+                            size: 28,
+                          ),
+                        );
+                      }),
                     ),
-                    maxLines: 2,
-                    maxLength: 300,
-                  ),
 
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  // Photo Section
-                  Text(
-                    'Add Photos (Optional) — ${selectedReviewImages.length}/$maxReviewImages',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    // Comment Section
+                    TextField(
+                      controller: commentController,
+                      decoration: InputDecoration(
+                        labelText: localization.t('comment_optional'),
+                        border: const OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.all(8),
+                        isDense: true,
+                      ),
+                      maxLines: 2,
+                      maxLength: 300,
                     ),
-                  ),
-                  const SizedBox(height: 6),
 
-                  // Multi-photo picker row
-                  SizedBox(
-                    height: 90,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: selectedReviewImages.length +
-                          (selectedReviewImages.length < maxReviewImages
-                              ? 1
-                              : 0),
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        // Trailing add-button tile
-                        if (index == selectedReviewImages.length) {
-                          return InkWell(
-                            onTap: () => _showReviewImagePicker(
-                              setDialogState,
-                              (File? image) {
-                                if (image == null) return;
-                                setDialogState(() {
-                                  selectedReviewImages.add(image);
-                                });
-                              },
-                            ),
-                            child: Container(
-                              width: 90,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                border: Border.all(
-                                    color: Colors.grey[300]!, width: 1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_photo_alternate_outlined,
-                                      size: 28, color: Colors.grey[500]),
-                                  const SizedBox(height: 2),
-                                  Text('Add',
-                                      style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 11)),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-                        final file = selectedReviewImages[index];
-                        return Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                file,
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: GestureDetector(
-                                onTap: () {
+                    const SizedBox(height: 8),
+
+                    // Photo Section
+                    Text(
+                      'Add Photos (Optional) — ${selectedReviewImages.length}/$maxReviewImages',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Multi-photo picker row
+                    SizedBox(
+                      height: 90,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: selectedReviewImages.length +
+                            (selectedReviewImages.length < maxReviewImages
+                                ? 1
+                                : 0),
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          // Trailing add-button tile
+                          if (index == selectedReviewImages.length) {
+                            return InkWell(
+                              onTap: () => _showReviewImagePicker(
+                                setDialogState,
+                                (File? image) {
+                                  if (image == null) return;
                                   setDialogState(() {
-                                    selectedReviewImages.removeAt(index);
+                                    selectedReviewImages.add(image);
                                   });
                                 },
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      color: Colors.white, size: 12),
+                              ),
+                              child: Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  border: Border.all(
+                                      color: Colors.grey[300]!, width: 1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate_outlined,
+                                        size: 28, color: Colors.grey[500]),
+                                    const SizedBox(height: 2),
+                                    Text('Add',
+                                        style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 11)),
+                                  ],
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Anonymous toggle
-                  Row(
-                    children: [
-                      Switch(
-                        value: isAnonymous,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            isAnonymous = value;
-                          });
+                            );
+                          }
+                          final file = selectedReviewImages[index];
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  file,
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setDialogState(() {
+                                      selectedReviewImages.removeAt(index);
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close,
+                                        color: Colors.white, size: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
                         },
-                        activeTrackColor: AppColors.primaryLight,
-                        activeThumbColor: AppColors.primary,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          localization.t('post_anonymously'),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
 
-                  const SizedBox(height: 4),
-                ],
+                    const SizedBox(height: 8),
+
+                    // Anonymous toggle
+                    Row(
+                      children: [
+                        Switch(
+                          value: isAnonymous,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              isAnonymous = value;
+                            });
+                          },
+                          activeTrackColor: AppColors.primaryLight,
+                          activeThumbColor: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            localization.t('post_anonymously'),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+                  ],
+                ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 16.0),
+            actions: [
+              TextButton(
+                onPressed:
+                    _isSubmittingReview ? null : () => Navigator.pop(context),
+                child: Text(localization.t('cancel')),
+              ),
+              ElevatedButton(
+                onPressed: (_isSubmittingReview || isUploadingImage)
+                    ? null
+                    : () async {
+                        final commentText = commentController.text.trim();
+                        final rating = selectedRating;
+                        final reviewImages =
+                            List<File>.from(selectedReviewImages);
+                        final anonymous = isAnonymous;
+
+                        setDialogState(() => isUploadingImage = true);
+                        setState(() => _isSubmittingReview = true);
+
+                        try {
+                          // Upload all selected review images in parallel
+                          final List<String> reviewImageUrls =
+                              reviewImages.isEmpty
+                                  ? (existingReview?.allImages ?? const [])
+                                  : await _businessService
+                                      .uploadReviewImages(reviewImages);
+
+                          final review = Review(
+                            id: '',
+                            businessId: widget.businessId,
+                            userId: user.id,
+                            rating: rating,
+                            comment:
+                                commentText.isNotEmpty ? commentText : null,
+                            createdAt: DateTime.now(),
+                            imageUrls: reviewImageUrls,
+                            isVerifiedVisit: _hasCheckedIn,
+                          );
+
+                          await _businessService.addReview(review,
+                              anonymous: anonymous);
+
+                          if (!mounted || !context.mounted) return;
+                          setState(() => _isSubmittingReview = false);
+                          setDialogState(() => isUploadingImage = false);
+                          Navigator.pop(context);
+
+                          // Stats are updated by DB trigger automatically
+                          await _loadBusinessDetails();
+
+                          if (mounted) {
+                            final rootCtx = navigatorKey.currentContext;
+                            if (rootCtx != null && rootCtx.mounted) {
+                              AppToast.success(rootCtx,
+                                  localization.t('review_added_success'));
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            final rootCtx = navigatorKey.currentContext;
+                            if (rootCtx != null && rootCtx.mounted) {
+                              AppToast.error(
+                                  rootCtx, '${localization.t('error')}: $e');
+                            }
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isSubmittingReview = false);
+                          }
+                          if (context.mounted) {
+                            setDialogState(() => isUploadingImage = false);
+                          }
+                        }
+                      },
+                child: (_isSubmittingReview || isUploadingImage)
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(localization.t('submit')),
+              ),
+            ],
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 16.0),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localization.t('cancel')),
-            ),
-            ElevatedButton(
-              onPressed: (_isSubmittingReview || isUploadingImage)
-                  ? null
-                  : () async {
-                      final commentText = commentController.text.trim();
-                      final rating = selectedRating;
-                      final reviewImages =
-                          List<File>.from(selectedReviewImages);
-                      final anonymous = isAnonymous;
-
-                      setDialogState(() => isUploadingImage = true);
-                      setState(() => _isSubmittingReview = true);
-                      Navigator.pop(context);
-
-                      try {
-                        // Upload all selected review images in parallel
-                        final List<String> reviewImageUrls =
-                            reviewImages.isEmpty
-                                ? const []
-                                : await _businessService
-                                    .uploadReviewImages(reviewImages);
-
-                        // Get user display name from profile
-                        String displayName = localization.t('anonymous');
-                        if (!anonymous) {
-                          final profile =
-                              await _businessService.getProfile(user.id);
-                          displayName = profile?.fullName ??
-                              user.email ??
-                              localization.t('anonymous');
-                        }
-
-                        final review = Review(
-                          id: '',
-                          businessId: widget.businessId,
-                          userId: user.id,
-                          rating: rating,
-                          comment: commentText.isNotEmpty ? commentText : null,
-                          createdAt: DateTime.now(),
-                          userName: displayName,
-                          userEmail: user.email,
-                          imageUrls: reviewImageUrls,
-                          isVerifiedVisit: _hasCheckedIn,
-                        );
-
-                        await _businessService.addReview(review);
-
-                        // Stats are updated by DB trigger automatically
-                        await _loadBusinessDetails();
-
-                        if (mounted) {
-                          final rootCtx = navigatorKey.currentContext;
-                          if (rootCtx != null) {
-                            AppToast.success(rootCtx,
-                                localization.t('review_added_success'));
-                          }
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          final rootCtx = navigatorKey.currentContext;
-                          if (rootCtx != null) {
-                            AppToast.error(
-                                rootCtx, '${localization.t('error')}: $e');
-                          }
-                        }
-                      } finally {
-                        setState(() => _isSubmittingReview = false);
-                      }
-                    },
-              child: (_isSubmittingReview || isUploadingImage)
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(localization.t('submit')),
-            ),
-          ],
         ),
       ),
-    );
+    ).then((_) => commentController.dispose());
   }
 
   void _showReviewImagePicker(
@@ -658,12 +679,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     imageQuality: 85,
                   );
                   if (image != null) {
+                    UsageAnalyticsService.instance
+                        .record('media_selected', media: 'gallery');
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
                   if (mounted) {
                     final rootCtx = navigatorKey.currentContext;
-                    if (rootCtx != null) {
+                    if (rootCtx != null && rootCtx.mounted) {
                       AppToast.error(rootCtx, 'Error picking image: $e');
                     }
                   }
@@ -683,12 +706,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     imageQuality: 85,
                   );
                   if (image != null) {
+                    UsageAnalyticsService.instance
+                        .record('media_selected', media: 'camera');
                     onImageSelected(File(image.path));
                   }
                 } catch (e) {
                   if (mounted) {
                     final rootCtx = navigatorKey.currentContext;
-                    if (rootCtx != null) {
+                    if (rootCtx != null && rootCtx.mounted) {
                       AppToast.error(rootCtx, 'Error taking photo: $e');
                     }
                   }
@@ -724,7 +749,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 if (mounted) {
                   navigator.pop(true);
                   final rootCtx = navigatorKey.currentContext;
-                  if (rootCtx != null) {
+                  if (rootCtx != null && rootCtx.mounted) {
                     AppToast.success(
                         rootCtx, localization.t('business_deleted_success'));
                   }
@@ -732,7 +757,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               } catch (e) {
                 if (mounted) {
                   final rootCtx = navigatorKey.currentContext;
-                  if (rootCtx != null) {
+                  if (rootCtx != null && rootCtx.mounted) {
                     AppToast.error(rootCtx, '${localization.t('error')}: $e');
                   }
                 }
