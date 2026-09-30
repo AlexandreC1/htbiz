@@ -22,6 +22,7 @@ dependencies:
   # UI
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.1
+  cupertino_icons: ^1.0.8
   
   # Images
   image_picker: ^1.0.7
@@ -37,13 +38,15 @@ dependencies:
   google_maps_flutter: ^2.14.2
   flutter_dotenv: ^6.0.0
   google_sign_in: ^7.2.0
+  flutter_native_splash: ^2.4.0
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.14.4
-  flutter_native_splash: ^2.4.0
   image: ^4.8.0
 
 flutter_launcher_icons:

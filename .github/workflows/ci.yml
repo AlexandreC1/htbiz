@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
   pull_request:
   workflow_dispatch:
 
@@ -34,14 +34,13 @@ jobs:
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test tool
 
-      # Errors and warnings fail the build; infos do not. Eight pre-existing
-      # use_build_context_synchronously infos in the review and edit screens are
-      # real but need an async-gap audit to fix properly. Drop this flag once
-      # they are cleared.
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze
 
       - run: flutter test
+
+      - name: Build release web app
+        run: flutter build web --release
 
   database:
     name: Replay migrations & assert security invariants
