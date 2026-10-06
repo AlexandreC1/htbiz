@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:htbiz/services/business_service.dart';
+import 'package:htbiz/services/app_exception.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +67,15 @@ void main() {
     final page = await service.getBusinessPage(businessIds: {});
     expect(page.items, isEmpty);
     expect(page.hasMore, isFalse);
+    expect(requestCount, 0);
+  });
+
+  test('profile reads require the signed-in account before cache or network',
+      () async {
+    await expectLater(
+      service.getProfile('someone-else'),
+      throwsA(isA<AppException>()),
+    );
     expect(requestCount, 0);
   });
 }

@@ -9,6 +9,7 @@ import '../../models/business_model.dart';
 import '../../models/review_model.dart';
 import '../../utils/business_statistics.dart';
 import '../../services/business_service.dart';
+import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
 import '../../services/push_notification_service.dart';
 import '../auth/login_screen.dart';
@@ -148,7 +149,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       _loadData();
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, '${localization.t('error')}: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     }
   }

@@ -7,11 +7,13 @@ import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
+import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
 import '../../services/push_notification_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
 import 'usage_settings_screen.dart';
+import '../business/usage_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final MainShellState? shell;
@@ -26,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   UserProfile? _profile;
   bool _isLoading = true;
+  bool _isAdmin = false;
+  String? _profileError;
   bool _isSaving = false;
   bool _isEditingName = false;
   File? _selectedAvatar;
@@ -34,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _checkAdmin();
   }
 
   @override
@@ -43,18 +48,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _profileError = null;
+    });
     final user = supabase.auth.currentUser;
-    if (user != null && !(user.isAnonymous)) {
-      final profile = await _businessService.getProfile(user.id);
-      setState(() {
-        _profile = profile;
-        _nameController.text = profile?.fullName ?? '';
-        _isLoading = false;
-        _isEditingName = false;
-      });
-    } else {
-      setState(() => _isLoading = false);
+    try {
+      if (user != null && !user.isAnonymous) {
+        final profile = await _businessService.getProfile(user.id);
+        if (!mounted) return;
+        setState(() {
+          _profile = profile;
+          _nameController.text = profile?.fullName ?? '';
+          _isEditingName = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _profileError = AppException.from(error).message);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _checkAdmin() async {
+    if (supabase.auth.currentUser == null) return;
+    try {
+      final allowed = await supabase.rpc('htbiz_is_admin');
+      if (mounted) setState(() => _isAdmin = allowed == true);
+    } catch (_) {
+      // Never grant access when the server cannot confirm authorization.
     }
   }
 
@@ -127,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -155,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -205,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         widget.shell?.refreshProfile();
       } catch (e) {
         if (mounted) {
-          AppToast.error(context, 'Error: $e');
+          AppToast.error(context, AppException.from(e).message);
         }
       } finally {
         if (mounted) setState(() => _isSaving = false);
@@ -229,6 +253,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : ListView(
               padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
+                if (_profileError != null)
+                  ListTile(
+                    title: Text(_profileError!),
+                    trailing: TextButton(
+                      onPressed: _loadProfile,
+                      child: Text(localization.t('retry')),
+                    ),
+                  ),
                 // Profile header card
                 _buildProfileHeader(user, isGuest, localization),
 
@@ -245,6 +277,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Settings section
                 _buildSectionHeader(localization.t('settings')),
                 _buildLanguageTile(localization),
+                if (_isAdmin)
+                  ListTile(
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    title: Text(localization.t('usage_dashboard')),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (_) => const UsageDashboardScreen())),
+                  ),
                 if (!isGuest)
                   ListTile(
                     leading: const Icon(Icons.privacy_tip_outlined),

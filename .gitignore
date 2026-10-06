@@ -93,3 +93,9 @@ build/
 .vscode/
 *.swp
 *.swo
+
+# Local tool state
+.claude/
+.dart-tool/
+.flutter
+.flutter_tool_state

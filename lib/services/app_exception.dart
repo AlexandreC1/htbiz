@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// What went wrong, in terms the UI can branch on.
@@ -52,8 +54,7 @@ class AppException implements Exception {
   /// Postgres SQLSTATE or HTTP status, when we have one. Useful for logs.
   final String? code;
 
-  bool get isRetryable =>
-      kind == AppErrorKind.network || kind == AppErrorKind.unknown;
+  bool get isRetryable => kind == AppErrorKind.network;
 
   @override
   String toString() => message;
@@ -65,25 +66,49 @@ class AppException implements Exception {
     if (error is TimeoutException) {
       return AppException(
         AppErrorKind.network,
-        'The connection timed out. Check your internet and try again.',
+        'HTBiz took too long to respond. Please try again.',
         cause: error,
       );
     }
 
-    if (error is SocketException || error is HttpException) {
+    if (error is SocketException ||
+        error is HttpException ||
+        error is http.ClientException ||
+        error is AuthRetryableFetchException) {
       return AppException(
         AppErrorKind.network,
-        'No internet connection.',
+        'Could not reach HTBiz. Check your connection or try again shortly.',
+        cause: error,
+      );
+    }
+
+    if (error is GoogleSignInException) {
+      return AppException(
+        AppErrorKind.unknown,
+        'Google sign-in is unavailable right now. Please try again or use email.',
         cause: error,
       );
     }
 
     if (error is AuthException) {
+      final message = switch (error.code) {
+        'invalid_credentials' => 'The email or password is incorrect.',
+        'email_not_confirmed' => 'Please verify your email before signing in.',
+        'weak_password' => 'Please choose a stronger password.',
+        'over_request_rate_limit' ||
+        'over_email_send_rate_limit' =>
+          'Please wait a moment before trying again.',
+        'session_expired' ||
+        'refresh_token_not_found' ||
+        'refresh_token_already_used' =>
+          'Your session has expired. Please sign in again.',
+        _ => 'We could not complete that request. Please try again shortly.',
+      };
       return AppException(
         AppErrorKind.unauthenticated,
-        'Your session has expired. Please sign in again.',
+        message,
         cause: error,
-        code: error.statusCode,
+        code: error.code ?? error.statusCode,
       );
     }
 
@@ -210,7 +235,9 @@ class Net {
 
   static const Duration defaultTimeout = Duration(seconds: 15);
   static const Duration uploadTimeout = Duration(seconds: 60);
-  static const int defaultAttempts = 3;
+  // Requests default to one attempt because a timed-out write may already have
+  // committed. Safe reads opt into retries at their call sites.
+  static const int defaultAttempts = 1;
 
   /// Run [action], retrying only failures that a retry can actually fix.
   ///
@@ -222,6 +249,10 @@ class Net {
     int attempts = defaultAttempts,
     String? whileDoing,
   }) async {
+    if (attempts < 1) {
+      throw ArgumentError.value(attempts, 'attempts', 'Must be at least 1');
+    }
+
     AppException? last;
 
     for (var attempt = 1; attempt <= attempts; attempt++) {

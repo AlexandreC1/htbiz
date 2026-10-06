@@ -61,6 +61,17 @@ class BusinessService {
     return id;
   }
 
+  String _requireOwnUserId(String requestedUserId) {
+    final currentUserId = _requireUserId;
+    if (requestedUserId != currentUserId) {
+      throw const AppException(
+        AppErrorKind.forbidden,
+        'You can only access your own account data.',
+      );
+    }
+    return currentUserId;
+  }
+
   String? get currentUserId => supabase.auth.currentUser?.id;
 
   bool get isSignedIn => supabase.auth.currentUser != null;
@@ -101,6 +112,7 @@ class BusinessService {
               .order('id', ascending: true)
               .range(offset, offset + limit);
         },
+        attempts: Net.defaultAttempts,
         whileDoing: 'load businesses',
       );
 
@@ -173,6 +185,7 @@ class BusinessService {
           .isFilter('deleted_at', null)
           .order('created_at', ascending: false)
           .limit(limit),
+      attempts: Net.defaultAttempts,
       whileDoing: 'search businesses',
     );
 
@@ -200,6 +213,7 @@ class BusinessService {
             .eq('id', id)
             .isFilter('deleted_at', null)
             .maybeSingle(),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load that business',
       );
       if (response == null) return null;
@@ -317,6 +331,7 @@ class BusinessService {
             .eq('business_id', businessId)
             .order('created_at', ascending: false)
             .limit(limit),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load reviews',
       );
 
@@ -342,6 +357,7 @@ class BusinessService {
           .order('created_at')
           .limit(1)
           .maybeSingle(),
+      attempts: Net.defaultAttempts,
       whileDoing: 'load your review',
     );
     return row == null ? null : Review.fromJson(row);
@@ -498,7 +514,9 @@ class BusinessService {
       () => supabase.storage.from('htbiz_images').upload(
             key,
             imageFile,
-            fileOptions: FileOptions(contentType: mime, upsert: false),
+            // The key stays stable across a timeout retry. Replacing the same
+            // bytes makes that retry safe if the server already accepted it.
+            fileOptions: FileOptions(contentType: mime, upsert: true),
           ),
       timeout: Net.uploadTimeout,
       // Re-sending a whole image over a weak link is expensive; one retry.
@@ -537,9 +555,11 @@ class BusinessService {
   // ===========================================================================
 
   Future<UserProfile?> getProfile(String userId) async {
+    _requireOwnUserId(userId);
     try {
       final response = await Net.call(
         () => supabase.from('profiles').select().eq('id', userId).maybeSingle(),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load your profile',
       );
       if (response == null) return null;
@@ -551,6 +571,26 @@ class BusinessService {
       if (cached != null) return UserProfile.fromJson(cached);
       rethrow;
     }
+  }
+
+  /// Ensure every authenticated account has the default client profile.
+  /// Choosing to manage a business is optional and can be done later in Profile.
+  Future<void> ensureProfile({
+    required String userId,
+    required String email,
+    String? fullName,
+    String? avatarUrl,
+  }) async {
+    final profile = await getProfile(userId);
+    if (profile != null) return;
+
+    await updateProfile(
+      userId: userId,
+      email: email,
+      fullName: fullName,
+      avatarUrl: avatarUrl,
+      role: 'client',
+    );
   }
 
   Future<void> updateProfile({
@@ -595,6 +635,7 @@ class BusinessService {
             .eq('business_id', businessId)
             .order('created_at', ascending: true)
             .limit(30),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load photos',
       );
       final list = (rows as List).cast<Map<String, dynamic>>();
@@ -646,12 +687,14 @@ class BusinessService {
   // ===========================================================================
 
   Future<Set<String>> getFavoriteIds(String userId) async {
+    _requireOwnUserId(userId);
     try {
       final rows = await Net.call(
         () => supabase
             .from('favorites')
             .select('business_id')
             .eq('user_id', userId),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load your favourites',
       );
       final ids =
@@ -693,6 +736,7 @@ class BusinessService {
   }
 
   Future<List<Business>> getFavoriteBusinesses(String userId) async {
+    _requireOwnUserId(userId);
     final favorites = await Net.call(
       () => supabase
           .from('favorites')
@@ -700,6 +744,7 @@ class BusinessService {
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(200),
+      attempts: Net.defaultAttempts,
       whileDoing: 'load your favourites',
     );
 
@@ -713,6 +758,7 @@ class BusinessService {
           .select()
           .inFilter('id', ids)
           .isFilter('deleted_at', null),
+      attempts: Net.defaultAttempts,
       whileDoing: 'load your favourites',
     );
 
@@ -727,6 +773,7 @@ class BusinessService {
   // ===========================================================================
 
   Future<List<AppNotification>> getNotifications(String userId) async {
+    _requireOwnUserId(userId);
     try {
       final rows = await Net.call(
         () => supabase
@@ -735,6 +782,7 @@ class BusinessService {
             .eq('user_id', userId)
             .order('created_at', ascending: false)
             .limit(50),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load notifications',
       );
       final list = (rows as List).cast<Map<String, dynamic>>();
@@ -754,6 +802,7 @@ class BusinessService {
   /// downloads the whole set to render a badge, and silently caps at
   /// `max_rows` so a busy owner's badge would stick at 1000.
   Future<int> getUnreadNotificationCount(String userId) async {
+    _requireOwnUserId(userId);
     return Net.callOr<int>(
       () async =>
           ((await supabase.rpc('unread_notification_count')) as num?)
@@ -789,6 +838,7 @@ class BusinessService {
   // ===========================================================================
 
   Future<List<Business>> getOwnerBusinesses(String ownerId) async {
+    _requireOwnUserId(ownerId);
     try {
       final rows = await Net.call(
         () => supabase
@@ -798,6 +848,7 @@ class BusinessService {
             .isFilter('deleted_at', null)
             .order('created_at', ascending: false)
             .limit(100),
+        attempts: Net.defaultAttempts,
         whileDoing: 'load your businesses',
       );
       final list = (rows as List).cast<Map<String, dynamic>>();
@@ -886,9 +937,7 @@ class BusinessService {
 
     // The patents bucket policy keys off the FIRST path segment, so this key
     // is intentionally `<uid>/<file>` rather than `<folder>/<uid>/<file>`.
-    final stamp = DateTime.now().millisecondsSinceEpoch;
-    final extension = mime == 'application/pdf' ? '.pdf' : '.jpg';
-    final key = '$userId/$stamp$extension';
+    final key = '$userId/${UploadValidator.storageFileName(mime)}';
 
     await Net.call(
       () => supabase.storage.from('htbiz_patents').upload(
@@ -897,7 +946,6 @@ class BusinessService {
             fileOptions: FileOptions(contentType: mime, upsert: false),
           ),
       timeout: Net.uploadTimeout,
-      attempts: 2,
       whileDoing: 'upload that document',
     );
 
@@ -909,6 +957,7 @@ class BusinessService {
       () => supabase.storage
           .from('htbiz_patents')
           .createSignedUrl(storagePath, 300),
+      attempts: Net.defaultAttempts,
       whileDoing: 'open that document',
     );
   }
@@ -942,6 +991,7 @@ class BusinessService {
   }
 
   Future<bool> hasCheckedIn(String userId, String businessId) async {
+    _requireOwnUserId(userId);
     final rows = await Net.callOr<List<dynamic>>(
       () async => await supabase
           .from('check_ins')

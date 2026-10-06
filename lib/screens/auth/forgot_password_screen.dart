@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../main.dart';
+import '../../services/app_exception.dart';
 import '../../widgets/app_toast.dart';
 import '../../services/localization_service.dart';
 
@@ -44,7 +45,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (error) {
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.error(context, error.toString());
+        AppToast.error(context, AppException.from(error).message);
       }
     }
   }

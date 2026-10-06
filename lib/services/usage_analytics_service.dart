@@ -23,7 +23,7 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
     enabled =
         _userId != null && (prefs.getBool('usage_consent_$_userId') ?? false);
     WidgetsBinding.instance.addObserver(this);
-    supabase.auth.onAuthStateChange.listen((_) async {
+    supabase.auth.onAuthStateChange.listen((_) {
       final id = supabase.auth.currentUser?.id;
       if (id == _userId) return;
       enabled = false;
@@ -31,6 +31,8 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
       _userId = id;
       enabled = id != null && (prefs.getBool('usage_consent_$id') ?? false);
       notifyListeners();
+    }, onError: (Object error) {
+      debugPrint('Analytics auth update unavailable: $error');
     });
     _heartbeat =
         Timer.periodic(const Duration(minutes: 1), (_) => _flushTime());

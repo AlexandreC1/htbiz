@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'network_probe.dart';
 
 /// Lightweight connectivity watcher.
 ///
@@ -13,7 +13,6 @@ class ConnectivityService extends ChangeNotifier {
   static final ConnectivityService instance = ConnectivityService._();
 
   static const Duration pollInterval = Duration(seconds: 8);
-  static const String _probeHost = 'supabase.co';
 
   bool _isOnline = true;
   bool get isOnline => _isOnline;
@@ -31,9 +30,7 @@ class ConnectivityService extends ChangeNotifier {
   Future<void> _check() async {
     final wasOnline = _isOnline;
     try {
-      final result = await InternetAddress.lookup(_probeHost)
-          .timeout(const Duration(seconds: 4));
-      _isOnline = result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+      _isOnline = await networkAvailable();
     } catch (_) {
       _isOnline = false;
     }

@@ -32,10 +32,8 @@ void main() async {
       SupabaseConfig.supabaseAnonKey.isEmpty) {
     FlutterNativeSplash.remove();
     runApp(const _StartupFailureApp(
-      reason: 'The app is missing its Supabase configuration.',
-      detail:
-          'SUPABASE_URL and SUPABASE_ANON_KEY were not found in the bundled '
-          '.env file. This build cannot reach the server.',
+      reason: 'HTBIZ is temporarily unavailable',
+      detail: 'Please try again later. If this continues, update the app.',
     ));
     return;
   }
@@ -60,9 +58,11 @@ void main() async {
     );
   } catch (error) {
     FlutterNativeSplash.remove();
-    runApp(_StartupFailureApp(
+    debugPrint('Supabase startup failed: $error');
+    runApp(const _StartupFailureApp(
       reason: 'The app could not start.',
-      detail: 'Failed to connect to the server: $error',
+      detail:
+          'We could not connect right now. Please reopen the app and try again.',
     ));
     return;
   }
@@ -181,7 +181,14 @@ class _HTBizAppState extends State<HTBizApp> {
       // token refresh also arrives here rather than as an event.
       onError: (Object error) {
         debugPrint('Auth stream error: $error');
-        if (error is AuthException) _goToLogin();
+        if (error is AuthException &&
+            const {
+              'session_expired',
+              'refresh_token_not_found',
+              'refresh_token_already_used'
+            }.contains(error.code)) {
+          _goToLogin();
+        }
       },
       cancelOnError: false,
     );

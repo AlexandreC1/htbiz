@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email      TEXT NOT NULL,
   full_name  TEXT,
   avatar_url TEXT,
-  role       TEXT NOT NULL DEFAULT 'client',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -26,9 +25,6 @@ CREATE TABLE IF NOT EXISTS public.businesses (
   category      TEXT NOT NULL,
   address       TEXT NOT NULL,
   phone         TEXT,
-  whatsapp      TEXT,
-  website       TEXT,
-  hours_text    TEXT,
   image_url     TEXT,
   rating        DOUBLE PRECISION NOT NULL DEFAULT 0,
   total_reviews INTEGER NOT NULL DEFAULT 0,
@@ -43,24 +39,7 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   rating         INTEGER NOT NULL,
   comment        TEXT,
   image_url      TEXT,
-  owner_reply    TEXT,
-  owner_reply_at TIMESTAMPTZ,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.favorites (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, business_id)
-);
-
-CREATE TABLE IF NOT EXISTS public.business_images (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-  image_url   TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- The public images bucket, created from the dashboard in production.

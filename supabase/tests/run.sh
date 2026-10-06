@@ -58,14 +58,28 @@ run_sql() {
 
 run_sql "Stubbing the Supabase platform"   "$HERE/00_stub_platform.sql"
 run_sql "Baseline schema"                  "$HERE/01_baseline.sql"
-run_sql "supabase_full_migration.sql"      "$ROOT/supabase_full_migration.sql"
+run_sql "Reconciling the dashboard-created schema" \
+        "$ROOT/supabase/migrations/20260415000000_reconcile_live_schema.sql"
+run_sql "Schema reconciliation idempotency" \
+        "$ROOT/supabase/migrations/20260415000000_reconcile_live_schema.sql"
+run_sql "Full base migration"              "$ROOT/supabase/migrations/20260415010000_full_schema.sql"
 run_sql "20260416_push_notifications.sql"  "$ROOT/supabase/migrations/20260416_push_notifications.sql"
+run_sql "Push notifications idempotency"  "$ROOT/supabase/migrations/20260416_push_notifications.sql"
 run_sql "20260902000000_production_hardening.sql" \
         "$ROOT/supabase/migrations/20260902000000_production_hardening.sql"
 
 # Re-apply the hardening migration: it must be safe to run twice.
 run_sql "Re-running hardening (idempotency check)" \
         "$ROOT/supabase/migrations/20260902000000_production_hardening.sql"
+
+run_sql "Profile onboarding RLS" \
+        "$ROOT/supabase/migrations/20261005000000_profile_onboarding_rls.sql"
+run_sql "Profile onboarding RLS idempotency" \
+        "$ROOT/supabase/migrations/20261005000000_profile_onboarding_rls.sql"
+run_sql "Profile privacy and role validation" \
+        "$ROOT/supabase/migrations/20261007000000_profile_privacy_and_roles.sql"
+run_sql "Profile privacy and role validation idempotency" \
+        "$ROOT/supabase/migrations/20261007000000_profile_privacy_and_roles.sql"
 
 run_sql "Security assertions" "$HERE/02_security_assertions.sql"
 
@@ -74,6 +88,25 @@ for migration in "$ROOT"/supabase/migrations/20260930*.sql; do
   run_sql "Feature migration idempotency" "$migration"
 done
 run_sql "Search, reviews and analytics assertions" "$HERE/03_feature_assertions.sql"
+run_sql "Orphaned business owner notification guard" \
+        "$ROOT/supabase/migrations/20261006000000_review_notification_orphan_guard.sql"
+run_sql "Orphaned business owner rating rollups" \
+        "$ROOT/supabase/migrations/20261006010000_orphan_owner_rating_rollups.sql"
+run_sql "Orphaned owner rating rollups idempotency" \
+        "$ROOT/supabase/migrations/20261006010000_orphan_owner_rating_rollups.sql"
+run_sql "Orphaned owner rating regression" "$HERE/04_orphan_owner_rating_assertion.sql"
+run_sql "Stale rating aggregate seed" "$HERE/05_rating_resync_seed.sql"
+run_sql "Rating aggregate resync" \
+        "$ROOT/supabase/migrations/20261006020000_resync_rating_rollups.sql"
+run_sql "Rating aggregate resync idempotency" \
+        "$ROOT/supabase/migrations/20261006020000_resync_rating_rollups.sql"
+run_sql "Rating aggregate resync assertions" "$HERE/05_rating_resync_assertion.sql"
+run_sql "Legacy dashboard policies" "$HERE/06_legacy_policies_seed.sql"
+run_sql "Dropping legacy dashboard policies" \
+        "$ROOT/supabase/migrations/20261006030000_drop_legacy_dashboard_policies.sql"
+run_sql "Dropping legacy dashboard policies idempotency" \
+        "$ROOT/supabase/migrations/20261006030000_drop_legacy_dashboard_policies.sql"
+run_sql "Legacy policy assertions" "$HERE/06_legacy_policies_assertion.sql"
 
 echo
 echo "==> All migrations applied and all assertions passed."

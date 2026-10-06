@@ -41,7 +41,9 @@ $$;
 INSERT INTO auth.users (id, email) VALUES
   ('11111111-1111-1111-1111-111111111111', 'owner@htbiz.test'),
   ('22222222-2222-2222-2222-222222222222', 'reviewer@htbiz.test'),
-  ('33333333-3333-3333-3333-333333333333', 'stranger@htbiz.test')
+  ('33333333-3333-3333-3333-333333333333', 'stranger@htbiz.test'),
+  ('44444444-4444-4444-4444-444444444444', 'new-user@htbiz.test'),
+  ('55555555-5555-5555-5555-555555555555', 'role-test@htbiz.test')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role) VALUES
@@ -59,6 +61,37 @@ ON CONFLICT DO NOTHING;
 -- Run every test as `authenticated`, the role PostgREST actually uses.
 -- ---------------------------------------------------------------------
 SET ROLE authenticated;
+
+-- A newly authenticated user can create the profile required to finish
+-- choosing their role during onboarding.
+SELECT test_login('44444444-4444-4444-4444-444444444444');
+INSERT INTO public.profiles (id, email, role)
+VALUES ('44444444-4444-4444-4444-444444444444', 'new-user@htbiz.test', 'client');
+SELECT test_ok(
+  (SELECT role FROM public.profiles
+    WHERE id = '44444444-4444-4444-4444-444444444444') = 'client',
+  'new user can create own profile'
+);
+SELECT test_ok(
+  (SELECT count(*) = 1 FROM public.profiles),
+  'users can only read their own profile and email'
+);
+
+SELECT test_login('55555555-5555-5555-5555-555555555555');
+RESET ROLE;
+DO $$
+BEGIN
+  INSERT INTO public.profiles (id, email, role)
+  VALUES ('55555555-5555-5555-5555-555555555555', 'role-test@htbiz.test', 'admin');
+  RAISE EXCEPTION 'FAIL user-created admin role was accepted';
+EXCEPTION WHEN check_violation THEN
+  RAISE NOTICE 'PASS  profile roles are restricted to supported choices';
+END $$;
+SET ROLE authenticated;
+SELECT test_login('55555555-5555-5555-5555-555555555555');
+SELECT test_ok(NOT EXISTS (
+  SELECT 1 FROM public.profiles WHERE id = '55555555-5555-5555-5555-555555555555'
+), 'invalid profile role insert was rejected');
 
 -- =====================================================================
 -- 1. An owner cannot mint their own verified badge.

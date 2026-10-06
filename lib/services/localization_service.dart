@@ -27,7 +27,9 @@ class LocalizationService extends ChangeNotifier {
 
   // Get translated string
   String translate(String key) {
-    return _translationsMap[_currentLanguage]?[key] ?? key;
+    return _translationsMap[_currentLanguage]?[key] ??
+        _translationsMap['en']?[key] ??
+        key;
   }
 
   // Short method name for convenience
@@ -278,6 +280,13 @@ class LocalizationService extends ChangeNotifier {
       'can_change_later': 'You can change this later in your profile.',
       'confirm_email_then_login':
           'Please check your email and confirm your account, then log in.',
+      'verify_your_email': 'Check your email',
+      'verification_sent_to': 'We sent a confirmation link to',
+      'verification_continue':
+          'Open the link to verify your account. HTBIZ will continue to setup automatically. You will not need to sign in again.',
+      'resend_verification': 'Resend confirmation email',
+      'verification_resent': 'A new confirmation link is on its way.',
+      'use_different_email': 'Use a different email',
 
       // Edit Business
       'business_updated_success': 'Business updated successfully!',
@@ -606,6 +615,15 @@ class LocalizationService extends ChangeNotifier {
           'Passer \u00e0 Client? Vous ne pourrez plus ajouter d\'entreprises.',
       'confirm': 'Confirmer',
       'guest': 'Invit\u00e9',
+      'verify_your_email': 'V\u00e9rifiez votre courriel',
+      'verification_sent_to':
+          'Nous avons envoy\u00e9 un lien de confirmation \u00e0',
+      'verification_continue':
+          'Ouvrez le lien pour confirmer votre compte. HTBIZ reprendra automatiquement la configuration. Vous n’aurez pas \u00e0 vous reconnecter.',
+      'resend_verification': 'Renvoyer le courriel de confirmation',
+      'verification_resent':
+          'Un nouveau lien de confirmation vous a \u00e9t\u00e9 envoy\u00e9.',
+      'use_different_email': 'Utiliser une autre adresse email',
       'sign_out': 'Se d\u00e9connecter',
     },
     'ht': {
@@ -879,6 +897,13 @@ class LocalizationService extends ChangeNotifier {
           'Chanje an Kliyan? Ou p ap kapab ajoute biznis ank\u00f2.',
       'confirm': 'Konfime',
       'guest': 'Envite',
+      'verify_your_email': 'Tcheke im\u00e8l ou',
+      'verification_sent_to': 'Nou voye yon lyen konfimasyon pou',
+      'verification_continue':
+          'Louvri lyen an pou konfime kont ou. HTBIZ ap kontinye mete kont lan kanpe otomatikman. Ou pap bezwen konekte ank\u00f2.',
+      'resend_verification': 'Voye im\u00e8l konfimasyon an ank\u00f2',
+      'verification_resent': 'Nou voye yon nouvo lyen konfimasyon ba ou.',
+      'use_different_email': 'S\u00e8vi ak yon l\u00f2t im\u00e8l',
       'sign_out': 'Dekonekte',
       'photo_updated': 'Foto a chanje',
       'name_updated': 'Non an chanje',

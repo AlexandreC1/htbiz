@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../widgets/app_toast.dart';
+import '../../services/app_exception.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
@@ -61,7 +62,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, '${loc.t('error')}: $e');
+        AppToast.error(context, AppException.from(e).message);
         setState(() => _isLoading = false);
       }
     }

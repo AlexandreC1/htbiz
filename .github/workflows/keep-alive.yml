@@ -28,24 +28,33 @@ jobs:
           supabase_url="${SUPABASE_URL%/}"
 
           for attempt in 1 2 3 4 5; do
-            response=$(curl --silent --show-error --location \
+            if response=$(curl --silent --show-error --location \
               --connect-timeout 15 \
               --max-time 45 \
               --output /tmp/body.txt \
               --write-out "%{http_code}" \
               "$supabase_url/rest/v1/businesses?select=id&limit=1" \
               -H "apikey: $SUPABASE_ANON_KEY" \
-              -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY"); then
+              :
+            else
+              # With `set -e`, curl's nonzero exit would otherwise terminate
+              # the job here before the retries below can run (e.g. DNS).
+              response=000
+              : > /tmp/body.txt
+            fi
 
             echo "Attempt $attempt response code: $response"
 
-            if [ "$response" -ge 200 ] && [ "$response" -lt 400 ]; then
+            if [[ "$response" =~ ^2[0-9][0-9]$|^3[0-9][0-9]$ ]]; then
               echo "Supabase project is alive"
               exit 0
             fi
 
             echo "Response body:"
-            cat /tmp/body.txt
+            if [ -s /tmp/body.txt ]; then
+              cat /tmp/body.txt
+            fi
 
             if [ "$attempt" -lt 5 ]; then
               echo "Ping failed; waiting before retrying in case the project is waking up."

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,8 +11,10 @@ import '../../models/business_model.dart';
 import '../../models/business_image_model.dart';
 import '../../models/review_model.dart';
 import '../../services/business_service.dart';
+import '../../services/app_exception.dart';
 import '../../services/usage_analytics_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/http_json.dart';
 import 'edit_business_screen.dart';
 import '../../config/maps_config.dart';
 
@@ -85,10 +86,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
       if (mounted) {
-        final localization =
-            Provider.of<LocalizationService>(context, listen: false);
-        AppToast.error(
-            context, '${localization.t('error_loading_business')}: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     }
   }
@@ -106,7 +104,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Could not launch phone dialer: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     }
   }
@@ -117,12 +115,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         'address': address,
         'key': MapsConfig.apiKey,
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final json = jsonDecode(body) as Map<String, dynamic>;
+      final json = await HttpJson.get(uri) as Map<String, dynamic>;
       if (json['status'] == 'OK') {
         final location =
             json['results'][0]['geometry']['location'] as Map<String, dynamic>;
@@ -233,7 +226,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       setState(() => _isFavorite = !_isFavorite);
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     } finally {
       if (mounted) setState(() => _isTogglingFavorite = false);
@@ -335,7 +328,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, '${localization.t('error')}: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     }
   }
@@ -630,7 +623,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             final rootCtx = navigatorKey.currentContext;
                             if (rootCtx != null && rootCtx.mounted) {
                               AppToast.error(
-                                  rootCtx, '${localization.t('error')}: $e');
+                                  rootCtx, AppException.from(e).message);
                             }
                           }
                         } finally {
@@ -687,7 +680,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   if (mounted) {
                     final rootCtx = navigatorKey.currentContext;
                     if (rootCtx != null && rootCtx.mounted) {
-                      AppToast.error(rootCtx, 'Error picking image: $e');
+                      AppToast.error(rootCtx, AppException.from(e).message);
                     }
                   }
                 }
@@ -714,7 +707,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   if (mounted) {
                     final rootCtx = navigatorKey.currentContext;
                     if (rootCtx != null && rootCtx.mounted) {
-                      AppToast.error(rootCtx, 'Error taking photo: $e');
+                      AppToast.error(rootCtx, AppException.from(e).message);
                     }
                   }
                 }
@@ -758,7 +751,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 if (mounted) {
                   final rootCtx = navigatorKey.currentContext;
                   if (rootCtx != null && rootCtx.mounted) {
-                    AppToast.error(rootCtx, '${localization.t('error')}: $e');
+                    AppToast.error(rootCtx, AppException.from(e).message);
                   }
                 }
               }
@@ -951,7 +944,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       setState(() => _galleryImages.add(newImage));
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error uploading photo: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     } finally {
       if (mounted) setState(() => _isAddingPhoto = false);
@@ -987,7 +980,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         setState(() => _galleryImages.removeWhere((img) => img.id == image.id));
       } catch (e) {
         if (mounted) {
-          AppToast.error(context, 'Error deleting photo: $e');
+          AppToast.error(context, AppException.from(e).message);
         }
       }
     }

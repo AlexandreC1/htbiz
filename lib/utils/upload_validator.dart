@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
@@ -13,6 +14,8 @@ import '../services/app_exception.dart';
 /// attacker-influenced filename.
 class UploadValidator {
   UploadValidator._();
+
+  static final Random _random = Random.secure();
 
   /// Matches the `file_size_limit` set on `htbiz_images`.
   static const int maxImageBytes = 5 * 1024 * 1024;
@@ -124,10 +127,17 @@ class UploadValidator {
     required String userId,
     required String mime,
   }) {
+    return '$folder/$userId/${storageFileName(mime)}';
+  }
+
+  /// Generates one collision-resistant name per upload attempt.
+  static String storageFileName(String mime) {
     final extension = _extensionFor(mime);
-    final stamp = DateTime.now().millisecondsSinceEpoch;
-    final salt = (stamp % 100000).toRadixString(36);
-    return '$folder/$userId/$stamp-$salt$extension';
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final salt = List.generate(12, (_) => _random.nextInt(256))
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '$stamp-$salt$extension';
   }
 
   static String _extensionFor(String mime) {

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
+import '../../services/http_json.dart';
 import '../business/business_detail_screen.dart';
 import '../../main.dart';
 import '../../config/maps_config.dart';
@@ -177,14 +176,18 @@ class _MapScreenState extends State<MapScreen> {
         _buildMarkers();
       }
 
-      // Persist to DB so we only geocode once per business.
-      try {
-        await _businessService.updateBusiness(business.id, {
-          'latitude': lat,
-          'longitude': lng,
-        });
-      } catch (_) {
-        // Non-fatal — markers still render this session.
+      // Persist to DB so we only geocode once per business. Only the owner may
+      // write the row; for anyone else the update is rejected by RLS, so do not
+      // send it.
+      if (business.ownerId == supabase.auth.currentUser?.id) {
+        try {
+          await _businessService.updateBusiness(business.id, {
+            'latitude': lat,
+            'longitude': lng,
+          });
+        } catch (_) {
+          // Non-fatal — markers still render this session.
+        }
       }
 
       // Rate-limit Nominatim.
@@ -244,12 +247,7 @@ class _MapScreenState extends State<MapScreen> {
         'address': query,
         'key': MapsConfig.apiKey,
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final json = jsonDecode(body) as Map<String, dynamic>;
+      final json = await HttpJson.get(uri) as Map<String, dynamic>;
       if (json['status'] == 'OK' && (json['results'] as List).isNotEmpty) {
         final result = json['results'][0];
         final location = result['geometry']['location'] as Map<String, dynamic>;
@@ -270,14 +268,10 @@ class _MapScreenState extends State<MapScreen> {
         'format': 'json',
         'limit': '1',
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
       // Nominatim requires a valid User-Agent
-      request.headers.set('User-Agent', 'HTBIZ/1.0 (contact@htbiz.app)');
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final list = jsonDecode(body) as List<dynamic>;
+      final list = await HttpJson.get(uri, headers: const {
+        'User-Agent': 'HTBIZ/1.0 (contact@htbiz.app)',
+      }) as List<dynamic>;
       if (list.isNotEmpty) {
         final result = list.first as Map<String, dynamic>;
         return {
@@ -341,12 +335,7 @@ class _MapScreenState extends State<MapScreen> {
         'latlng': '${position.latitude},${position.longitude}',
         'key': MapsConfig.apiKey,
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final json = jsonDecode(body) as Map<String, dynamic>;
+      final json = await HttpJson.get(uri) as Map<String, dynamic>;
       if (json['status'] == 'OK' && (json['results'] as List).isNotEmpty) {
         return json['results'][0]['formatted_address'] as String;
       }
@@ -361,13 +350,9 @@ class _MapScreenState extends State<MapScreen> {
         'lon': '${position.longitude}',
         'format': 'json',
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      request.headers.set('User-Agent', 'HTBIZ/1.0 (contact@htbiz.app)');
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final json = jsonDecode(body) as Map<String, dynamic>;
+      final json = await HttpJson.get(uri, headers: const {
+        'User-Agent': 'HTBIZ/1.0 (contact@htbiz.app)',
+      }) as Map<String, dynamic>;
       if (json['display_name'] is String) {
         return json['display_name'] as String;
       }

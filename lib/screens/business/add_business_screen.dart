@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +7,9 @@ import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
+import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
+import '../../services/http_json.dart';
 import '../../utils/input_sanitizer.dart';
 import '../../config/maps_config.dart';
 
@@ -83,7 +84,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, 'Error picking image: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     }
   }
@@ -177,12 +178,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
         'address': query,
         'key': MapsConfig.apiKey,
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final json = jsonDecode(body) as Map<String, dynamic>;
+      final json = await HttpJson.get(uri) as Map<String, dynamic>;
       if (json['status'] == 'OK' && (json['results'] as List).isNotEmpty) {
         final location =
             json['results'][0]['geometry']['location'] as Map<String, dynamic>;
@@ -200,13 +196,9 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
         'format': 'json',
         'limit': '1',
       });
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      request.headers.set('User-Agent', 'HTBIZ/1.0 (contact@htbiz.app)');
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-      final list = jsonDecode(body) as List<dynamic>;
+      final list = await HttpJson.get(uri, headers: const {
+        'User-Agent': 'HTBIZ/1.0 (contact@htbiz.app)',
+      }) as List<dynamic>;
       if (list.isNotEmpty) {
         final result = list.first as Map<String, dynamic>;
         return {
@@ -290,7 +282,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
       }
     } catch (e) {
       if (mounted) {
-        AppToast.error(context, '${localization.t('error')}: $e');
+        AppToast.error(context, AppException.from(e).message);
       }
     } finally {
       if (mounted) {

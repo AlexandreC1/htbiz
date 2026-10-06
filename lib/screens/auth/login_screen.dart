@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../services/app_exception.dart';
+import '../../services/google_auth_service.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/htbiz_logo.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
 import '../main_shell.dart';
-import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -109,15 +111,15 @@ class _LoginScreenState extends State<LoginScreen>
             );
           }
         } else if (mounted) {
-          final profile =
-              user != null ? await BusinessService().getProfile(user.id) : null;
-
-          if (profile == null && mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeSlideRoute(page: const OnboardingScreen()),
-              (route) => false,
+          if (user != null) {
+            await BusinessService().ensureProfile(
+              userId: user.id,
+              email: user.email ?? '',
+              fullName: user.userMetadata?['full_name'] as String?,
+              avatarUrl: user.userMetadata?['avatar_url'] as String?,
             );
-          } else if (mounted) {
+          }
+          if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               FadeSlideRoute(page: const MainShell()),
               (route) => false,
@@ -126,7 +128,9 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } catch (error) {
-      _failedAttempts++;
+      if (error is AuthException && error.code == 'invalid_credentials') {
+        _failedAttempts++;
+      }
       if (_failedAttempts >= 5) {
         final lockSeconds = _failedAttempts >= 10
             ? 120
@@ -137,15 +141,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (mounted) {
-        String errorMessage = 'An error occurred';
-
-        if (error.toString().contains('invalid_credentials')) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.toString().contains('Email not confirmed')) {
-          errorMessage = 'Please verify your email first';
-        }
-
-        AppToast.error(context, errorMessage);
+        AppToast.error(context, AppException.from(error).message);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -164,12 +160,14 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isGoogleLoading = true);
 
     try {
-      const webClientId =
-          '85584991269-f04tu8dt4pn7vhn4ipijtaqocmb613qh.apps.googleusercontent.com';
-
-      final googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(serverClientId: webClientId);
-      final googleUser = await googleSignIn.authenticate();
+      if (kIsWeb) {
+        await supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: Uri.base.resolve('/').toString(),
+        );
+        return;
+      }
+      final googleUser = await GoogleAuthService.authenticate();
 
       final idToken = googleUser.authentication.idToken;
 
@@ -184,15 +182,15 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (mounted) {
         final user = supabase.auth.currentUser;
-        final profile =
-            user != null ? await BusinessService().getProfile(user.id) : null;
-
-        if (profile == null && mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            FadeSlideRoute(page: const OnboardingScreen()),
-            (route) => false,
+        if (user != null) {
+          await BusinessService().ensureProfile(
+            userId: user.id,
+            email: user.email ?? '',
+            fullName: user.userMetadata?['full_name'] as String?,
+            avatarUrl: user.userMetadata?['avatar_url'] as String?,
           );
-        } else if (mounted) {
+        }
+        if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             FadeSlideRoute(page: const MainShell()),
             (route) => false,
@@ -200,8 +198,13 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } catch (error) {
+      debugPrint('Google sign-in failed: $error');
+      if (error is GoogleSignInException &&
+          error.code == GoogleSignInExceptionCode.canceled) {
+        return;
+      }
       if (mounted) {
-        AppToast.error(context, 'Google sign-in failed: $error');
+        AppToast.error(context, AppException.from(error).message);
       }
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
