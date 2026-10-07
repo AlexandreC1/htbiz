@@ -289,7 +289,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        replyController.dispose();
+      });
+    });
   }
 
   void _showEditBusinessDialog() {
@@ -679,7 +683,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           ),
         ),
       ),
-    ).then((_) => commentController.dispose());
+    ).whenComplete(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        commentController.dispose();
+      });
+    });
   }
 
   void _showReviewImagePicker(
