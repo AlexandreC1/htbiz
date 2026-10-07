@@ -16,6 +16,7 @@ import '../../services/usage_analytics_service.dart';
 import '../../services/localization_service.dart';
 import '../../services/http_json.dart';
 import 'edit_business_screen.dart';
+import '../auth/login_screen.dart';
 import '../../config/maps_config.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
@@ -340,7 +341,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         Provider.of<LocalizationService>(context, listen: false);
 
     if (user == null || user.isAnonymous) {
-      AppToast.warning(context, localization.t('please_sign_in_to_review'));
+      final shouldSignIn = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(localization.t('review_sign_in_title')),
+          content: Text(localization.t('review_sign_in_message')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(localization.t('cancel')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(localization.t('sign_in')),
+            ),
+          ],
+        ),
+      );
+      if (shouldSignIn == true && mounted) {
+        final authenticated = await Navigator.of(context).push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => const LoginScreen(returnToReview: true),
+          ),
+        );
+        if (authenticated == true && mounted) {
+          await _showAddReviewDialog();
+        }
+      }
       return;
     }
 
@@ -349,7 +376,12 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     try {
       existingReview = await _businessService.getMyReview(widget.businessId);
     } catch (error) {
-      if (mounted) AppToast.error(context, error.toString());
+      if (mounted) {
+        AppToast.error(
+          context,
+          AppException.from(error, whileDoing: 'load your review').message,
+        );
+      }
       return;
     } finally {
       if (mounted) setState(() => _isSubmittingReview = false);

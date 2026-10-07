@@ -8,6 +8,7 @@ import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/offline_banner.dart';
 import '../../services/connectivity_service.dart';
+import '../../services/app_exception.dart';
 import '../../models/business_model.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
@@ -187,7 +188,8 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!mounted || requestId != _requestId) return;
       setState(() {
         _isLoading = false;
-        _loadError = error.toString();
+        _loadError =
+            AppException.from(error, whileDoing: 'load businesses').message;
       });
     }
   }
@@ -212,7 +214,10 @@ class HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _filterBusinesses();
     } catch (error) {
       if (mounted && requestId == _requestId) {
-        AppToast.error(context, error.toString());
+        AppToast.error(
+          context,
+          AppException.from(error, whileDoing: 'load more businesses').message,
+        );
       }
     } finally {
       if (mounted && requestId == _requestId) {

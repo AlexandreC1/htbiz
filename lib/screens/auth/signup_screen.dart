@@ -14,7 +14,9 @@ import '../../services/localization_service.dart';
 import '../main_shell.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  const SignUpScreen({super.key, this.returnToReview = false});
+
+  final bool returnToReview;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -88,7 +90,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             avatarUrl: user.userMetadata?['avatar_url'] as String?,
           );
         }
-        if (mounted) {
+        if (mounted && widget.returnToReview) {
+          Navigator.of(context).pop(true);
+        } else if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             FadeSlideRoute(page: const MainShell()),
             (route) => false,
@@ -156,6 +160,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     }
     if (!mounted) return;
+    if (widget.returnToReview) {
+      Navigator.of(context).pop(true);
+      return;
+    }
     Navigator.of(context).pushAndRemoveUntil(
       FadeSlideRoute(page: const MainShell()),
       (route) => false,

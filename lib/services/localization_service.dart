@@ -49,14 +49,19 @@ class LocalizationService extends ChangeNotifier {
       'usage_privacy': 'Usage and privacy',
       'usage_opt_in': 'Share HTBiz usage data',
       'usage_notice':
-          'Optional: share your account ID, request IP, phone OS, screen size, time spent on HTBiz screens, media selection events and approximate location when you use location features. Only platform administrators can view these data for 30 days. No photos, recordings or activity in other apps are collected. Turn this off at any time.',
+          'Optional: share your account ID, request IP, phone OS, screen size, time spent on HTBiz screens, media selection events and approximate location when you use location features. Only platform administrators can view these data for your selected retention period. No photos, recordings or activity in other apps are collected. Turn this off at any time.',
+      'usage_disclosure_button': 'How usage data is handled',
+      'usage_retention': 'Keep usage data for',
+      'usage_days': 'days',
+      'review_sign_in_title': 'Sign in to leave a review',
+      'review_sign_in_message': 'Create an account or sign in to rate and review this business.',
       'usage_delete': 'Stop sharing and delete my usage data',
       'usage_deleted': 'Your usage data were deleted.',
       'usage_failed':
           'Usage data are unavailable. Check your connection and access, then retry.',
       'usage_dashboard': 'Administrator usage dashboard',
       'usage_window':
-          'Latest opted-in activity · last 30 days. Location is approximate. Missing fields mean not collected. IP proxy headers are unverified.',
+          'Latest opted-in activity within each user’s selected retention period. Location is approximate. Missing fields mean not collected. IP proxy headers are unverified.',
       'usage_empty': 'No shared activity yet.',
       // App General
       'app_name': 'HTBIZ',
@@ -338,14 +343,19 @@ class LocalizationService extends ChangeNotifier {
       'usage_privacy': 'Utilisation et confidentialité',
       'usage_opt_in': 'Partager mon utilisation de HTBiz',
       'usage_notice':
-          'Facultatif : partager votre identifiant, IP, système, taille d’écran, temps dans HTBiz, sélections de médias et position approximative lors de l’utilisation de la localisation. Seuls les administrateurs y accèdent pendant 30 jours. Aucune photo, aucun enregistrement ni activité d’autres applications. Désactivable à tout moment.',
+          'Facultatif : partager votre identifiant, IP, système, taille d’écran, temps dans HTBiz, sélections de médias et position approximative lors de l’utilisation de la localisation. Les administrateurs y accèdent pendant la durée choisie. Aucune photo, aucun enregistrement ni activité d’autres applications. Désactivable à tout moment.',
+      'usage_disclosure_button': 'Comment les données sont utilisées',
+      'usage_retention': 'Conserver les données pendant',
+      'usage_days': 'jours',
+      'review_sign_in_title': 'Connectez-vous pour donner un avis',
+      'review_sign_in_message': 'Créez un compte ou connectez-vous pour noter cette entreprise.',
       'usage_delete': 'Arrêter le partage et supprimer mes données',
       'usage_deleted': 'Vos données d’utilisation ont été supprimées.',
       'usage_failed':
           'Données indisponibles. Vérifiez votre connexion et vos accès, puis réessayez.',
       'usage_dashboard': 'Utilisation — administration',
       'usage_window':
-          'Activité consentie récente · 30 derniers jours. Position approximative. Champs absents : non collectés. IP du proxy non vérifiées.',
+          'Activité consentie selon la durée choisie par chaque utilisateur. Position approximative. Champs absents : non collectés. IP du proxy non vérifiées.',
       'usage_empty': 'Aucune activité partagée.',
       // App General
       'app_name': 'HTBIZ',
@@ -635,14 +645,19 @@ class LocalizationService extends ChangeNotifier {
       'usage_privacy': 'Itilizasyon ak konfidansyalite',
       'usage_opt_in': 'Pataje itilizasyon HTBiz mwen',
       'usage_notice':
-          'Si ou vle: pataje idantifyan kont ou, IP, sistèm telefòn, gwosè ekran, tan nan HTBiz, seleksyon medya ak pozisyon apwoksimatif lè ou itilize lokalizasyon. Se administratè sèlman ki ka wè done sa yo pandan 30 jou. Nou pa kolekte foto, anrejistreman ni aktivite lòt aplikasyon. Ou ka sispann nenpòt lè.',
+          'Si ou vle: pataje idantifyan kont ou, IP, sistèm telefòn, gwosè ekran, tan nan HTBiz, seleksyon medya ak pozisyon apwoksimatif lè ou itilize lokalizasyon. Se administratè sèlman ki ka wè done sa yo pandan dire ou chwazi a. Nou pa kolekte foto, anrejistreman ni aktivite lòt aplikasyon. Ou ka sispann nenpòt lè.',
+      'usage_disclosure_button': 'Kijan nou itilize done yo',
+      'usage_retention': 'Kenbe done yo pandan',
+      'usage_days': 'jou',
+      'review_sign_in_title': 'Konekte pou kite yon avi',
+      'review_sign_in_message': 'Kreye yon kont oswa konekte pou bay biznis sa a nòt ak avi.',
       'usage_delete': 'Sispann pataje epi efase done mwen',
       'usage_deleted': 'Done itilizasyon ou yo efase.',
       'usage_failed':
           'Done yo pa disponib. Verifye koneksyon ak aksè ou, epi eseye ankò.',
       'usage_dashboard': 'Tablo itilizasyon administratè',
       'usage_window':
-          'Dènye aktivite ak konsantman · 30 dènye jou. Pozisyon apwoksimatif. Chan vid: pa kolekte. IP pwoksi yo pa verifye.',
+          'Dènye aktivite ak konsantman selon dire chak itilizatè chwazi a. Pozisyon apwoksimatif. Chan vid: pa kolekte. IP pwoksi yo pa verifye.',
       'usage_empty': 'Pa gen aktivite pataje ankò.',
       // App General
       'app_name': 'HTBIZ',

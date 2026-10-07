@@ -18,7 +18,9 @@ import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.returnToReview = false});
+
+  final bool returnToReview;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -92,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen>
         final pendingRole = prefs.getString('pending_role');
         final user = supabase.auth.currentUser;
 
-        if (pendingRole != null && user != null) {
+        if (pendingRole != null && user != null && !widget.returnToReview) {
           await prefs.remove('pending_role');
           await BusinessService().updateProfile(
             userId: user.id,
@@ -119,7 +121,9 @@ class _LoginScreenState extends State<LoginScreen>
               avatarUrl: user.userMetadata?['avatar_url'] as String?,
             );
           }
-          if (mounted) {
+          if (mounted && widget.returnToReview) {
+            Navigator.of(context).pop(true);
+          } else if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               FadeSlideRoute(page: const MainShell()),
               (route) => false,
@@ -153,6 +157,17 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.of(context).pushReplacement(
         FadeSlideRoute(page: const MainShell()),
       );
+    }
+  }
+
+  Future<void> _openSignUp() async {
+    final created = await Navigator.of(context).push<bool>(
+      FadeSlideRoute(
+        page: SignUpScreen(returnToReview: widget.returnToReview),
+      ),
+    );
+    if (created == true && mounted && widget.returnToReview) {
+      Navigator.of(context).pop(true);
     }
   }
 
@@ -190,7 +205,9 @@ class _LoginScreenState extends State<LoginScreen>
             avatarUrl: user.userMetadata?['avatar_url'] as String?,
           );
         }
-        if (mounted) {
+        if (mounted && widget.returnToReview) {
+          Navigator.of(context).pop(true);
+        } else if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             FadeSlideRoute(page: const MainShell()),
             (route) => false,
@@ -450,14 +467,15 @@ class _LoginScreenState extends State<LoginScreen>
 
                           const SizedBox(height: 12),
 
-                          // Guest button
-                          SizedBox(
-                            height: 52,
-                            child: OutlinedButton(
-                              onPressed: _isLoading ? null : _signInAsGuest,
-                              child: Text(localization.t('continue_as_guest')),
+                          if (!widget.returnToReview)
+                            SizedBox(
+                              height: 52,
+                              child: OutlinedButton(
+                                onPressed: _isLoading ? null : _signInAsGuest,
+                                child: Text(
+                                    localization.t('continue_as_guest')),
+                              ),
                             ),
-                          ),
 
                           const Spacer(),
 
@@ -473,13 +491,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    FadeSlideRoute(
-                                      page: const SignUpScreen(),
-                                    ),
-                                  );
-                                },
+                                onPressed: _openSignUp,
                                 style: TextButton.styleFrom(
                                   padding:
                                       const EdgeInsets.symmetric(horizontal: 6),

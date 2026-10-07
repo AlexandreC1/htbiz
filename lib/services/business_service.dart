@@ -385,6 +385,9 @@ class BusinessService {
     try {
       final response = await Net.call(
         () => supabase.rpc('save_review', params: payload).single(),
+        // save_review serializes by business/user and updates that row, so an
+        // ambiguous timeout retry cannot create a duplicate review.
+        attempts: 2,
         whileDoing: 'post your review',
       );
       await _cache.remove('reviews_${review.businessId}');

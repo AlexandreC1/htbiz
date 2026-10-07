@@ -88,6 +88,11 @@ for migration in "$ROOT"/supabase/migrations/20260930*.sql; do
   run_sql "Feature migration idempotency" "$migration"
 done
 run_sql "Search, reviews and analytics assertions" "$HERE/03_feature_assertions.sql"
+run_sql "User-selected analytics retention" \
+        "$ROOT/supabase/migrations/20261007010000_user_selected_usage_retention.sql"
+run_sql "User-selected analytics retention idempotency" \
+        "$ROOT/supabase/migrations/20261007010000_user_selected_usage_retention.sql"
+run_sql "Analytics retention assertions" "$HERE/07_usage_retention_assertion.sql"
 run_sql "Orphaned business owner notification guard" \
         "$ROOT/supabase/migrations/20261006000000_review_notification_orphan_guard.sql"
 run_sql "Orphaned business owner rating rollups" \

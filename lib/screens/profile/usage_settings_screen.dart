@@ -15,6 +15,7 @@ class UsageSettingsScreen extends StatefulWidget {
 class _UsageSettingsScreenState extends State<UsageSettingsScreen> {
   bool _admin = false;
   bool _busy = false;
+  bool _retentionBusy = false;
   @override
   void initState() {
     super.initState();
@@ -41,6 +42,20 @@ class _UsageSettingsScreenState extends State<UsageSettingsScreen> {
     }
   }
 
+  Future<void> _changeRetention(int? value) async {
+    if (value == null) return;
+    setState(() => _retentionBusy = true);
+    try {
+      await UsageAnalyticsService.instance.setRetentionDays(value);
+    } catch (_) {
+      if (mounted) {
+        AppToast.error(context, LocalizationService().t('usage_failed'));
+      }
+    } finally {
+      if (mounted) setState(() => _retentionBusy = false);
+    }
+  }
+
   Future<void> _delete() async {
     setState(() => _busy = true);
     try {
@@ -64,9 +79,19 @@ class _UsageSettingsScreenState extends State<UsageSettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(loc.t('usage_privacy'))),
       body: ListView(padding: const EdgeInsets.all(20), children: [
-        Text(loc.t('usage_notice'),
-            style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: 24),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: Text(loc.t('usage_disclosure_button'),
+              style: Theme.of(context).textTheme.titleSmall),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(loc.t('usage_notice'),
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         ListenableBuilder(
           listenable: UsageAnalyticsService.instance,
           builder: (context, _) => SwitchListTile.adaptive(
@@ -76,6 +101,25 @@ class _UsageSettingsScreenState extends State<UsageSettingsScreen> {
             onChanged: _busy ? null : _changeConsent,
           ),
         ),
+        ListenableBuilder(
+          listenable: UsageAnalyticsService.instance,
+          builder: (context, _) => DropdownButtonFormField<int>(
+            key: ValueKey(UsageAnalyticsService.instance.retentionDays),
+            value: UsageAnalyticsService.instance.retentionDays,
+            decoration: InputDecoration(
+              labelText: loc.t('usage_retention'),
+              border: const OutlineInputBorder(),
+            ),
+            items: [7, 30, 90, 365]
+                .map((days) => DropdownMenuItem(
+                      value: days,
+                      child: Text('$days ${loc.t('usage_days')}'),
+                    ))
+                .toList(),
+            onChanged: _busy || _retentionBusy ? null : _changeRetention,
+          ),
+        ),
+        if (_retentionBusy) const LinearProgressIndicator(),
         const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: _busy ? null : _delete,

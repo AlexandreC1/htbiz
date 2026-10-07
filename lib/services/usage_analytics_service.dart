@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_exception.dart';
 import '../main.dart';
 
 /// Opt-in, best-effort first-party analytics. Never delays a user action.
@@ -10,6 +11,7 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
   UsageAnalyticsService._();
   static final instance = UsageAnalyticsService._();
   bool enabled = false;
+  int retentionDays = 30;
   String? _userId;
   String _screen = 'home';
   Size _size = const Size(1, 1);
@@ -22,6 +24,7 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     enabled =
         _userId != null && (prefs.getBool('usage_consent_$_userId') ?? false);
+    await _loadRetentionDays();
     WidgetsBinding.instance.addObserver(this);
     supabase.auth.onAuthStateChange.listen((_) {
       final id = supabase.auth.currentUser?.id;
@@ -29,7 +32,9 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
       enabled = false;
       _started = null;
       _userId = id;
+      retentionDays = 30;
       enabled = id != null && (prefs.getBool('usage_consent_$id') ?? false);
+      unawaited(_loadRetentionDays());
       notifyListeners();
     }, onError: (Object error) {
       debugPrint('Analytics auth update unavailable: $error');
@@ -53,6 +58,44 @@ class UsageAnalyticsService extends ChangeNotifier with WidgetsBindingObserver {
     _started = value ? DateTime.now() : null;
     notifyListeners();
     if (value) unawaited(record('screen_view'));
+  }
+
+  Future<void> setRetentionDays(int value) async {
+    if (![7, 30, 90, 365].contains(value)) {
+      throw ArgumentError.value(value, 'value', 'Unsupported retention period');
+    }
+    if (supabase.auth.currentUser == null) {
+      throw const AppException(
+        AppErrorKind.unauthenticated,
+        'Sign in to change this setting.',
+      );
+    }
+    final id = supabase.auth.currentUser!.id;
+    await supabase.rpc('set_usage_retention_days', params: {'p_days': value});
+    if (supabase.auth.currentUser?.id != id) return;
+    retentionDays = value;
+    notifyListeners();
+  }
+
+  Future<void> _loadRetentionDays() async {
+    final id = supabase.auth.currentUser?.id;
+    if (id == null) {
+      retentionDays = 30;
+      notifyListeners();
+      return;
+    }
+    try {
+      final value = await supabase.rpc('get_usage_retention_days');
+      final parsed = value is num ? value.toInt() : int.tryParse('$value');
+      if (parsed != null &&
+          [7, 30, 90, 365].contains(parsed) &&
+          supabase.auth.currentUser?.id == id) {
+        retentionDays = parsed;
+        notifyListeners();
+      }
+    } catch (error) {
+      debugPrint('Usage retention preference unavailable: $error');
+    }
   }
 
   void screen(String name, Size size) {
