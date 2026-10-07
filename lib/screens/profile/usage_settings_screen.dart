@@ -105,7 +105,7 @@ class _UsageSettingsScreenState extends State<UsageSettingsScreen> {
           listenable: UsageAnalyticsService.instance,
           builder: (context, _) => DropdownButtonFormField<int>(
             key: ValueKey(UsageAnalyticsService.instance.retentionDays),
-            value: UsageAnalyticsService.instance.retentionDays,
+            initialValue: UsageAnalyticsService.instance.retentionDays,
             decoration: InputDecoration(
               labelText: loc.t('usage_retention'),
               border: const OutlineInputBorder(),
