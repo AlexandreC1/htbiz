@@ -4,14 +4,17 @@ class Review {
   final String userId;
   final int rating;
   final String? comment;
+
   /// Legacy single image (still populated by the DB trigger/backfill for old rows).
   final String? imageUrl;
+
   /// New: multiple images per review. Empty list if none.
   final List<String> imageUrls;
   final String? ownerReply;
   final DateTime? ownerReplyAt;
   final DateTime createdAt;
   final bool isVerifiedVisit;
+  final bool isAnonymous;
 
   String? userName;
   String? userEmail;
@@ -32,6 +35,7 @@ class Review {
     this.ownerReplyAt,
     required this.createdAt,
     this.isVerifiedVisit = false,
+    this.isAnonymous = false,
     this.userName,
     this.userEmail,
     this.likesCount = 0,
@@ -66,6 +70,7 @@ class Review {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       isVerifiedVisit: json['is_verified_visit'] as bool? ?? false,
+      isAnonymous: json['is_anonymous'] as bool? ?? false,
       userName: json['user_name'] as String?,
       userEmail: json['user_email'] as String?,
     );
@@ -80,6 +85,7 @@ class Review {
       'image_url': imageUrls.isNotEmpty ? imageUrls.first : imageUrl,
       'image_urls': imageUrls,
       'is_verified_visit': isVerifiedVisit,
+      'is_anonymous': isAnonymous,
       'user_name': userName,
       'user_email': userEmail,
     };
@@ -97,6 +103,7 @@ class Review {
     DateTime? ownerReplyAt,
     DateTime? createdAt,
     bool? isVerifiedVisit,
+    bool? isAnonymous,
     String? userName,
     String? userEmail,
     int? likesCount,
@@ -114,6 +121,7 @@ class Review {
       ownerReplyAt: ownerReplyAt ?? this.ownerReplyAt,
       createdAt: createdAt ?? this.createdAt,
       isVerifiedVisit: isVerifiedVisit ?? this.isVerifiedVisit,
+      isAnonymous: isAnonymous ?? this.isAnonymous,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
       likesCount: likesCount ?? this.likesCount,

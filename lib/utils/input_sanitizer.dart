@@ -13,8 +13,7 @@ class InputSanitizer {
   }
 
   /// Sanitize a business name (no HTML, max 100 chars)
-  static String sanitizeName(String input) =>
-      sanitize(input, maxLength: 100);
+  static String sanitizeName(String input) => sanitize(input, maxLength: 100);
 
   /// Sanitize a description (no HTML, max 2000 chars)
   static String sanitizeDescription(String input) =>

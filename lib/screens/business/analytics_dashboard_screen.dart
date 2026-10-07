@@ -1,9 +1,11 @@
+import '../../widgets/business_stats_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../main.dart';
 import '../../models/business_model.dart';
 import '../../models/review_model.dart';
+import '../../utils/business_statistics.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import 'business_detail_screen.dart';
@@ -62,13 +64,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   int get _totalReviews =>
-      _reviewsByBusiness.values.fold(0, (sum, list) => sum + list.length);
+      _businesses.fold(0, (sum, business) => sum + business.totalReviews);
 
   double get _overallRating {
-    if (_businesses.isEmpty) return 0;
-    final rated = _businesses.where((b) => b.totalReviews > 0);
-    if (rated.isEmpty) return 0;
-    return rated.map((b) => b.rating).reduce((a, b) => a + b) / rated.length;
+    return weightedBusinessRating(_businesses);
   }
 
   int get _totalFavorites =>
@@ -104,8 +103,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       const SizedBox(height: 16),
                       Text(
                         localization.t('no_businesses_yet'),
-                        style: TextStyle(
-                            fontSize: 18, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -149,51 +147,21 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildSummaryRow(LocalizationService localization) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.store,
-            value: '${_businesses.length}',
-            label: localization.t('your_businesses'),
-            color: Colors.teal,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.reviews,
-            value: '$_totalReviews',
-            label: localization.t('total_reviews'),
-            color: Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.star,
-            value: _overallRating.toStringAsFixed(1),
-            label: localization.t('avg_rating'),
-            color: Colors.amber,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _SummaryCard(
-            icon: Icons.favorite,
-            value: '$_totalFavorites',
-            label: localization.t('total_favorites'),
-            color: Colors.red,
-          ),
-        ),
-      ],
-    );
+    return BusinessStatsGrid(stats: [
+      BusinessStat(Icons.storefront_outlined, '${_businesses.length}',
+          localization.t('your_businesses')),
+      BusinessStat(Icons.reviews_outlined, '$_totalReviews',
+          localization.t('total_reviews')),
+      BusinessStat(Icons.star_outline, _overallRating.toStringAsFixed(1),
+          localization.t('avg_rating')),
+      BusinessStat(Icons.favorite_outline, '$_totalFavorites',
+          localization.t('total_favorites')),
+    ]);
   }
 
   Widget _buildRatingChart(LocalizationService localization) {
     final dist = _aggregateRatingDistribution;
-    final maxCount =
-        dist.values.fold(0, (a, b) => a > b ? a : b).toDouble();
+    final maxCount = dist.values.fold(0, (a, b) => a > b ? a : b).toDouble();
 
     if (_totalReviews == 0) return const SizedBox.shrink();
 
@@ -205,8 +173,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           children: [
             Text(
               localization.t('rating_distribution'),
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -317,13 +284,13 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.teal[50],
+                      color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       business.category,
-                      style: TextStyle(
-                          color: Colors.teal[700],
+                      style: const TextStyle(
+                          color: AppColors.primaryDark,
                           fontSize: 11,
                           fontWeight: FontWeight.w600),
                     ),
@@ -333,14 +300,13 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _buildMiniStat(
-                      Icons.star, Colors.amber, business.rating.toStringAsFixed(1)),
+                  _buildMiniStat(Icons.star, Colors.amber,
+                      business.rating.toStringAsFixed(1)),
                   const SizedBox(width: 16),
                   _buildMiniStat(Icons.reviews, Colors.blue,
                       '${reviews.length} ${localization.t('reviews').toLowerCase()}'),
                   const SizedBox(width: 16),
-                  _buildMiniStat(
-                      Icons.favorite, Colors.red, '$favCount'),
+                  _buildMiniStat(Icons.favorite, Colors.red, '$favCount'),
                 ],
               ),
             ],
@@ -386,8 +352,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     return Column(
       children: recent.map((entry) {
         final review = entry.value;
-        final business =
-            _businesses.firstWhere((b) => b.id == entry.key);
+        final business = _businesses.firstWhere((b) => b.id == entry.key);
         final daysAgo = DateTime.now().difference(review.createdAt).inDays;
         final timeText = daysAgo == 0
             ? localization.t('today')
@@ -422,51 +387,6 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           ),
         );
       }).toList(),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-
-  const _SummaryCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

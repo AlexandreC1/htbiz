@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
 import '../../widgets/app_toast.dart';
+import '../../services/localization_service.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -20,9 +23,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureConfirmPassword = true;
   bool _passwordReset = false;
 
-  // We only navigate here when passwordRecovery event fires, so token is valid
-  final bool _hasValidToken = true;
-
   @override
   void dispose() {
     _passwordController.dispose();
@@ -34,6 +34,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    final loc = Provider.of<LocalizationService>(context, listen: false);
 
     try {
       await supabase.auth.updateUser(
@@ -52,13 +53,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
 
-        String errorMessage = 'Une erreur est survenue';
+        String errorMessage = loc.t('error_occurred');
 
         if (error.toString().contains('expired')) {
-          errorMessage = 'Le lien a expiré. Veuillez demander un nouveau lien.';
+          errorMessage = loc.t('link_expired_error');
         } else if (error.toString().contains('same')) {
-          errorMessage =
-              'Le nouveau mot de passe doit être différent de l\'ancien';
+          errorMessage = loc.t('password_must_differ');
         }
 
         AppToast.error(context, errorMessage);
@@ -68,79 +68,70 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouveau mot de passe'),
-        backgroundColor: const Color(0xFF006064),
-        foregroundColor: Colors.white,
+        title: Text(loc.t('reset_password')),
         automaticallyImplyLeading: !_passwordReset,
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _passwordReset ? _buildSuccessView() : _buildFormView(),
+            child:
+                _passwordReset ? _buildSuccessView(loc) : _buildFormView(loc),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormView() {
-    if (!_hasValidToken) {
-      return _buildInvalidTokenView();
-    }
-
+  Widget _buildFormView(LocalizationService loc) {
     return Form(
       key: _formKey,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Icon
           const Icon(
             Icons.vpn_key,
             size: 80,
-            color: Color(0xFF006064),
+            color: AppColors.primary,
           ),
           const SizedBox(height: 30),
-
-          // Title
           Text(
-            'Créer un nouveau mot de passe',
+            loc.t('create_new_password'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
-
-          // Description
           Text(
-            'Votre nouveau mot de passe doit être différent des mots de passe précédents.',
+            loc.t('new_password_description'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 40),
-
-          // New Password field
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Nouveau mot de passe',
-              hintText: 'Minimum 6 caractères',
-              prefixIcon: const Icon(Icons.lock_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              hintText: loc.t('password_hint'),
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
+                  size: 20,
                 ),
                 onPressed: () {
                   setState(() => _obscurePassword = !_obscurePassword);
@@ -149,35 +140,31 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Veuillez entrer un mot de passe';
+                return loc.t('please_enter_password');
               }
               if (value.length < 8) {
-                return 'Le mot de passe doit contenir au moins 8 caractères';
+                return loc.t('password_min_length');
               }
               if (!RegExp(r'(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
-                return 'Doit contenir majuscule, minuscule et chiffre';
+                return loc.t('password_complexity');
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
-
-          // Confirm Password field
           TextFormField(
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
             decoration: InputDecoration(
-              labelText: 'Confirmer le mot de passe',
-              hintText: 'Retapez votre mot de passe',
-              prefixIcon: const Icon(Icons.lock_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              hintText: loc.t('confirm_password'),
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
+                  size: 20,
                 ),
                 onPressed: () {
                   setState(
@@ -187,95 +174,45 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Veuillez confirmer votre mot de passe';
+                return loc.t('please_confirm_password');
               }
               if (value != _passwordController.text) {
-                return 'Les mots de passe ne correspondent pas';
+                return loc.t('passwords_dont_match');
               }
               return null;
             },
           ),
           const SizedBox(height: 30),
-
-          // Reset Button
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else
-            ElevatedButton(
-              onPressed: _resetPassword,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF006064),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Réinitialiser le mot de passe',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 52,
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _resetPassword,
+                      child: Text(loc.t('reset_password')),
+                    ),
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInvalidTokenView() {
+  Widget _buildSuccessView(LocalizationService loc) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.error_outline,
-          size: 80,
-          color: Colors.orange[700],
-        ),
-        const SizedBox(height: 30),
-        Text(
-          'Lien invalide ou expiré',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Ce lien de réinitialisation n\'est plus valide. Les liens expirent après 1 heure.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-        ),
-        const SizedBox(height: 40),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF006064),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text('Demander un nouveau lien'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSuccessView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Success Icon
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -289,51 +226,36 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
         const SizedBox(height: 30),
-
-        // Success Title
         Text(
-          'Mot de passe réinitialisé!',
+          loc.t('password_reset_success'),
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.green[700],
-              ),
+          style: GoogleFonts.poppins(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.green[700],
+          ),
         ),
         const SizedBox(height: 16),
-
-        // Success Message
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+            loc.t('password_reset_success_message'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: GoogleFonts.poppins(fontSize: 15),
           ),
         ),
         const SizedBox(height: 40),
-
-        // Go to Login Button
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeSlideRoute(page: const LoginScreen()),
-              (route) => false,
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF006064),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text(
-            'Se connecter',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+        SizedBox(
+          height: 52,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                FadeSlideRoute(page: const LoginScreen()),
+                (route) => false,
+              );
+            },
+            child: Text(loc.t('sign_in')),
           ),
         ),
       ],

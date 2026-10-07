@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../services/app_exception.dart';
+import '../../services/google_auth_service.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/htbiz_logo.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
 import '../main_shell.dart';
-import 'onboarding_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.returnToReview = false});
+
+  final bool returnToReview;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -90,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen>
         final pendingRole = prefs.getString('pending_role');
         final user = supabase.auth.currentUser;
 
-        if (pendingRole != null && user != null) {
+        if (pendingRole != null && user != null && !widget.returnToReview) {
           await prefs.remove('pending_role');
           await BusinessService().updateProfile(
             userId: user.id,
@@ -109,15 +113,16 @@ class _LoginScreenState extends State<LoginScreen>
             );
           }
         } else if (mounted) {
-          final profile = user != null
-              ? await BusinessService().getProfile(user.id)
-              : null;
-
-          if (profile == null && mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              FadeSlideRoute(page: const OnboardingScreen()),
-              (route) => false,
+          if (user != null) {
+            await BusinessService().ensureProfile(
+              userId: user.id,
+              email: user.email ?? '',
+              fullName: user.userMetadata?['full_name'] as String?,
+              avatarUrl: user.userMetadata?['avatar_url'] as String?,
             );
+          }
+          if (mounted && widget.returnToReview) {
+            Navigator.of(context).pop(true);
           } else if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               FadeSlideRoute(page: const MainShell()),
@@ -127,7 +132,9 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } catch (error) {
-      _failedAttempts++;
+      if (error is AuthException && error.code == 'invalid_credentials') {
+        _failedAttempts++;
+      }
       if (_failedAttempts >= 5) {
         final lockSeconds = _failedAttempts >= 10
             ? 120
@@ -138,15 +145,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (mounted) {
-        String errorMessage = 'An error occurred';
-
-        if (error.toString().contains('invalid_credentials')) {
-          errorMessage = 'Invalid email or password';
-        } else if (error.toString().contains('Email not confirmed')) {
-          errorMessage = 'Please verify your email first';
-        }
-
-        AppToast.error(context, errorMessage);
+        AppToast.error(context, AppException.from(error).message);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -161,16 +160,29 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  Future<void> _openSignUp() async {
+    final created = await Navigator.of(context).push<bool>(
+      FadeSlideRoute(
+        page: SignUpScreen(returnToReview: widget.returnToReview),
+      ),
+    );
+    if (created == true && mounted && widget.returnToReview) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   Future<void> _signInWithGoogle() async {
     setState(() => _isGoogleLoading = true);
 
     try {
-      const webClientId =
-          '85584991269-f04tu8dt4pn7vhn4ipijtaqocmb613qh.apps.googleusercontent.com';
-
-      final googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(serverClientId: webClientId);
-      final googleUser = await googleSignIn.authenticate();
+      if (kIsWeb) {
+        await supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: Uri.base.resolve('/').toString(),
+        );
+        return;
+      }
+      final googleUser = await GoogleAuthService.authenticate();
 
       final idToken = googleUser.authentication.idToken;
 
@@ -185,15 +197,16 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (mounted) {
         final user = supabase.auth.currentUser;
-        final profile = user != null
-            ? await BusinessService().getProfile(user.id)
-            : null;
-
-        if (profile == null && mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            FadeSlideRoute(page: const OnboardingScreen()),
-            (route) => false,
+        if (user != null) {
+          await BusinessService().ensureProfile(
+            userId: user.id,
+            email: user.email ?? '',
+            fullName: user.userMetadata?['full_name'] as String?,
+            avatarUrl: user.userMetadata?['avatar_url'] as String?,
           );
+        }
+        if (mounted && widget.returnToReview) {
+          Navigator.of(context).pop(true);
         } else if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             FadeSlideRoute(page: const MainShell()),
@@ -202,8 +215,13 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     } catch (error) {
+      debugPrint('Google sign-in failed: $error');
+      if (error is GoogleSignInException &&
+          error.code == GoogleSignInExceptionCode.canceled) {
+        return;
+      }
       if (mounted) {
-        AppToast.error(context, 'Google sign-in failed: $error');
+        AppToast.error(context, AppException.from(error).message);
       }
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
@@ -226,8 +244,8 @@ class _LoginScreenState extends State<LoginScreen>
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        24, 48, 24, bottomPadding + 24),
+                    padding:
+                        EdgeInsets.fromLTRB(24, 48, 24, bottomPadding + 24),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -281,8 +299,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return localization
-                                    .t('please_enter_email');
+                                return localization.t('please_enter_email');
                               }
                               if (!value.contains('@')) {
                                 return localization
@@ -331,8 +348,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return localization
-                                    .t('please_enter_password');
+                                return localization.t('please_enter_password');
                               }
                               return null;
                             },
@@ -356,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     horizontal: 4, vertical: 2),
                               ),
                               child: Text(
-                                'Mot de passe oubli\u00e9?',
+                                localization.t('forgot_password'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
@@ -387,8 +403,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     height: 52,
                                     child: ElevatedButton(
                                       onPressed: _signIn,
-                                      child: Text(
-                                          localization.t('sign_in')),
+                                      child: Text(localization.t('sign_in')),
                                     ),
                                   ),
                           ),
@@ -400,8 +415,8 @@ class _LoginScreenState extends State<LoginScreen>
                             children: [
                               const Expanded(child: Divider()),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
                                   localization.t('or'),
                                   style: GoogleFonts.poppins(
@@ -420,10 +435,9 @@ class _LoginScreenState extends State<LoginScreen>
                           SizedBox(
                             height: 52,
                             child: OutlinedButton.icon(
-                              onPressed:
-                                  (_isLoading || _isGoogleLoading)
-                                      ? null
-                                      : _signInWithGoogle,
+                              onPressed: (_isLoading || _isGoogleLoading)
+                                  ? null
+                                  : _signInWithGoogle,
                               icon: _isGoogleLoading
                                   ? const SizedBox(
                                       width: 20,
@@ -453,15 +467,15 @@ class _LoginScreenState extends State<LoginScreen>
 
                           const SizedBox(height: 12),
 
-                          // Guest button
-                          SizedBox(
-                            height: 52,
-                            child: OutlinedButton(
-                              onPressed: _isLoading ? null : _signInAsGuest,
-                              child: Text(
-                                  localization.t('continue_as_guest')),
+                          if (!widget.returnToReview)
+                            SizedBox(
+                              height: 52,
+                              child: OutlinedButton(
+                                onPressed: _isLoading ? null : _signInAsGuest,
+                                child:
+                                    Text(localization.t('continue_as_guest')),
+                              ),
                             ),
-                          ),
 
                           const Spacer(),
 
@@ -477,16 +491,10 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    FadeSlideRoute(
-                                      page: const SignUpScreen(),
-                                    ),
-                                  );
-                                },
+                                onPressed: _openSignUp,
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6),
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
                                 ),
                                 child: Text(
                                   localization.t('sign_up'),

@@ -41,32 +41,54 @@ serve(async (req: Request) => {
       });
     }
 
-    // Check if user is admin
-    if (!ADMIN_EMAILS.includes(user.email ?? "")) {
+    // Use service role client for the admin check and the update (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authorise against the public.admins table, falling back to the
+    // ADMIN_EMAILS env var. The env var alone meant the database itself had no
+    // record of who is an admin, so an admin could not be granted or revoked
+    // without a redeploy.
+    const { data: adminRow } = await adminClient
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const isAdmin = adminRow !== null ||
+      (user.email != null && ADMIN_EMAILS.includes(user.email));
+
+    if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Parse request body
-    const { business_id, action } = await req.json();
+    // A malformed body used to throw and fall through to the 500 handler,
+    // which echoed err.message back to the caller.
+    const body = await req.json().catch(() => null);
+    const business_id = body?.business_id;
+    const action = body?.action;
+    const note = typeof body?.note === "string" ? body.note.slice(0, 500) : null;
 
-    if (!business_id || !["approve", "reject"].includes(action)) {
+    if (typeof business_id !== "string" ||
+        !/^[0-9a-f-]{36}$/i.test(business_id) ||
+        !["approve", "reject"].includes(action)) {
       return new Response(
-        JSON.stringify({ error: "Required: business_id and action (approve|reject)" }),
+        JSON.stringify({ error: "Required: business_id (uuid) and action (approve|reject)" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-
-    // Use service role client to update (bypasses RLS)
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const newStatus = action === "approve" ? "verified" : "rejected";
 
     const { data: business, error: updateError } = await adminClient
       .from("businesses")
-      .update({ verification_status: newStatus })
+      .update({
+        verification_status: newStatus,
+        verification_reviewed_at: new Date().toISOString(),
+        verification_note: note,
+      })
       .eq("id", business_id)
       .eq("verification_status", "pending") // only act on pending requests
       .select("id, name, owner_id, verification_status")
@@ -102,8 +124,11 @@ serve(async (req: Request) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
+    // Echoing err.message leaked internal detail (table names, constraint
+    // names) to any caller who could reach the endpoint.
+    console.error("verify-business error", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: "Internal error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

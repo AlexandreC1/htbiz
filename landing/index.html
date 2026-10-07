@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTBIZ - Discover Local Businesses in Haiti</title>
+  <meta name="description" content="HTBIZ is Haiti's premier business directory. Find restaurants, hotels, shops, services and more. Support local businesses across Haiti.">
+  <meta name="theme-color" content="#0E3A5C">
+
+  <meta property="og:title" content="HTBIZ - Discover Local Businesses in Haiti">
+  <meta property="og:description" content="Haiti's premier business directory. Find and support local businesses across the country.">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ocean-deep: #0E3A5C;
+      --ocean-mid: #1B4F72;
+      --teal: #0E8A7E;
+      --gold: #E8A838;
+      --gold-light: #F6C65B;
+      --surface: #FAF8F5;
+      --text-primary: #1C2833;
+      --text-secondary: #6C7A89;
+      --card: #FFFFFF;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      background: var(--surface);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-filled { fill: currentColor; stroke: none; }
+
+    /* ── NAV ─────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(14, 58, 92, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.4rem; font-weight: 700; color: #fff;
+      text-decoration: none;
+    }
+    .nav-brand .logo-mark {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.1rem; color: var(--ocean-deep);
+    }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a {
+      color: rgba(255,255,255,0.8); text-decoration: none;
+      font-size: 0.9rem; font-weight: 500; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--gold-light); }
+    .nav-cta {
+      background: var(--gold) !important; color: var(--ocean-deep) !important;
+      padding: 9px 22px !important; border-radius: 10px;
+      font-weight: 600 !important; font-size: 0.88rem !important;
+      transition: transform 0.2s, box-shadow 0.2s !important;
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 16px rgba(232,168,56,0.35) !important;
+    }
+    /* Language switcher */
+    .lang-switch {
+      display: flex; gap: 4px; margin-left: 8px;
+      background: rgba(255,255,255,0.1); border-radius: 8px; padding: 3px;
+    }
+    .lang-switch button {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      font-family: inherit; font-size: 0.75rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 6px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-switch button.active {
+      background: rgba(255,255,255,0.2); color: #fff;
+    }
+    .lang-switch button:hover { color: #fff; }
+
+    .mobile-toggle {
+      display: none; background: none; border: none; cursor: pointer;
+      color: #fff; font-size: 1.5rem; padding: 4px;
+    }
+
+    /* ── HERO ────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(155deg, var(--ocean-deep) 0%, var(--ocean-mid) 45%, var(--teal) 100%);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+      padding: 120px 24px 80px;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 80%, rgba(14,138,126,0.25) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(246,198,91,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-shape {
+      position: absolute; border-radius: 50%; opacity: 0.06;
+      background: #fff; pointer-events: none;
+    }
+    .hero-shape-1 { width: 500px; height: 500px; top: -150px; right: -100px; animation: float 18s ease-in-out infinite; }
+    .hero-shape-2 { width: 300px; height: 300px; bottom: -80px; left: -60px; animation: float 22s ease-in-out infinite reverse; }
+    .hero-shape-3 { width: 180px; height: 180px; top: 40%; left: 10%; animation: float 15s ease-in-out infinite 3s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-30px) rotate(5deg); }
+    }
+
+    .hero-inner {
+      max-width: 1200px; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+      position: relative; z-index: 2;
+    }
+    .hero-text h1 {
+      font-size: 3.2rem; font-weight: 800; line-height: 1.15;
+      color: #fff; margin-bottom: 20px;
+    }
+    .hero-text h1 span { color: var(--gold-light); }
+    .hero-text p {
+      font-size: 1.15rem; color: rgba(255,255,255,0.8);
+      max-width: 480px; margin-bottom: 36px; font-weight: 300;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 14px;
+      font-family: inherit; font-size: 1rem; font-weight: 600;
+      text-decoration: none; cursor: pointer; border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--gold); color: var(--ocean-deep);
+      box-shadow: 0 4px 20px rgba(232,168,56,0.3);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(232,168,56,0.45); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.12); color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+    .btn svg { width: 20px; height: 20px; }
+
+    .hero-visual {
+      display: flex; justify-content: center; align-items: center;
+    }
+    .phone-mockup {
+      width: 280px; height: 560px;
+      background: #111; border-radius: 40px;
+      border: 4px solid #333;
+      overflow: hidden; position: relative;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+      animation: phonePulse 4s ease-in-out infinite;
+    }
+    @keyframes phonePulse {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .phone-screen {
+      width: 100%; height: 100%;
+      background: var(--surface);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .phone-status { height: 44px; background: var(--ocean-deep); flex-shrink: 0; }
+    .phone-appbar {
+      background: var(--ocean-deep); padding: 8px 14px 12px;
+      flex-shrink: 0;
+    }
+    .phone-appbar-title { color: #fff; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; }
+    .phone-appbar-sub { color: rgba(255,255,255,0.65); font-size: 0.48rem; margin-top: 1px; }
+    .phone-searchbar {
+      margin: 10px 12px 6px; height: 30px; background: #fff;
+      border-radius: 10px; display: flex; align-items: center;
+      padding: 0 10px; color: #aaa; font-size: 0.5rem; gap: 5px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .phone-chips {
+      display: flex; gap: 5px; padding: 6px 12px; overflow: hidden; flex-shrink: 0;
+    }
+    .phone-chip {
+      padding: 3px 9px; border-radius: 8px; font-size: 0.42rem; font-weight: 600;
+      white-space: nowrap; border: 1px solid #ddd; color: var(--text-secondary);
+      background: #fff;
+    }
+    .phone-chip.active {
+      background: rgba(27,79,114,0.1); color: var(--ocean-mid);
+      border-color: var(--ocean-mid);
+    }
+    .phone-feed { flex: 1; overflow: hidden; padding: 4px 12px; }
+    .phone-biz-card {
+      background: #fff; border-radius: 12px; overflow: hidden;
+      margin-bottom: 8px; border: 1px solid #eee;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .phone-biz-img {
+      width: 100%; height: 90px; object-fit: cover; display: block;
+      position: relative;
+    }
+    .phone-biz-img-wrap { position: relative; overflow: hidden; }
+    .phone-biz-badge {
+      position: absolute; top: 6px; left: 6px;
+      background: #fff; padding: 2px 6px; border-radius: 5px;
+      font-size: 0.38rem; font-weight: 600; color: var(--ocean-mid);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .phone-biz-rating {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 5px;
+      font-size: 0.38rem; color: #fff; display: flex; align-items: center; gap: 2px;
+    }
+    .phone-biz-rating .star { color: #f5b731; }
+    .phone-biz-info { padding: 7px 8px; }
+    .phone-biz-name { font-size: 0.52rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 3px; }
+    .phone-biz-verified { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+    .phone-biz-verified svg { width: 5px; height: 5px; }
+    .phone-biz-addr { font-size: 0.4rem; color: var(--text-secondary); margin-top: 1px; }
+    .phone-nav {
+      height: 40px; background: #fff; border-top: 1px solid #eee;
+      display: flex; justify-content: space-around; align-items: center;
+      flex-shrink: 0; padding: 0 8px;
+    }
+    .phone-nav-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .phone-nav-item svg { width: 14px; height: 14px; stroke: #999; fill: none; stroke-width: 1.5; }
+    .phone-nav-item.active svg { stroke: var(--ocean-mid); }
+    .phone-nav-item span { font-size: 0.35rem; color: #999; }
+    .phone-nav-item.active span { color: var(--ocean-mid); font-weight: 600; }
+
+    /* ── STATS ────────────────────────────────── */
+    .stats {
+      background: var(--card);
+      border-top: 1px solid rgba(0,0,0,0.04);
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .stats-inner {
+      max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 32px; padding: 48px 24px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 2.2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--ocean-mid), var(--teal));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 0.88rem; color: var(--text-secondary); font-weight: 500; margin-top: 4px; }
+
+    /* ── FEATURES ─────────────────────────────── */
+    .features { padding: 100px 24px; }
+    .section-header { text-align: center; max-width: 600px; margin: 0 auto 60px; }
+    .section-tag {
+      display: inline-block; padding: 6px 16px; border-radius: 20px;
+      background: rgba(14,138,126,0.1); color: var(--teal);
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 14px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .section-header h2 { font-size: 2.2rem; font-weight: 700; margin-bottom: 14px; }
+    .section-header p { color: var(--text-secondary); font-size: 1.05rem; }
+
+    .features-grid {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+    }
+    .feature-card {
+      background: var(--card); border-radius: 20px;
+      padding: 32px 28px;
+      border: 1px solid rgba(0,0,0,0.05);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+    }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .feature-icon svg { width: 26px; height: 26px; }
+    .fi-blue { background: rgba(27,79,114,0.1); color: var(--ocean-mid); }
+    .fi-gold { background: rgba(232,168,56,0.12); color: var(--gold); }
+    .fi-teal { background: rgba(14,138,126,0.1); color: var(--teal); }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; }
+
+    /* ── CATEGORIES ───────────────────────────── */
+    .categories {
+      background: linear-gradient(155deg, var(--ocean-deep), var(--ocean-mid));
+      padding: 100px 24px; color: #fff;
+    }
+    .categories .section-tag { background: rgba(246,198,91,0.15); color: var(--gold-light); }
+    .categories .section-header h2 { color: #fff; }
+    .categories .section-header p { color: rgba(255,255,255,0.7); }
+
+    .cat-grid {
+      max-width: 900px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+    }
+    .cat-item {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; overflow: hidden;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .cat-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+    }
+    .cat-photo {
+      width: 100%; height: 120px; object-fit: cover;
+      display: block; filter: brightness(0.85);
+      transition: filter 0.3s, transform 0.3s;
+    }
+    .cat-item:hover .cat-photo { filter: brightness(1); transform: scale(1.05); }
+    .cat-photo-wrap { overflow: hidden; }
+    .cat-name { font-size: 0.9rem; font-weight: 600; padding: 14px 8px; }
+
+    /* ── HOW IT WORKS ─────────────────────────── */
+    .how { padding: 100px 24px; }
+    .steps {
+      max-width: 900px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute; top: 36px; left: 16%; right: 16%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--teal), var(--ocean-mid));
+      opacity: 0.25;
+    }
+    .step { text-align: center; position: relative; z-index: 2; }
+    .step-num {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      color: var(--ocean-deep); font-size: 1.5rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+      box-shadow: 0 8px 24px rgba(232,168,56,0.2);
+    }
+    .step h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+    .step p { color: var(--text-secondary); font-size: 0.9rem; }
+
+    /* ── CTA ──────────────────────────────────── */
+    .cta {
+      padding: 100px 24px; text-align: center;
+      background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(14,138,126,0.06) 0%, transparent 60%), var(--surface);
+    }
+    .cta h2 { font-size: 2.4rem; font-weight: 700; margin-bottom: 16px; }
+    .cta p { color: var(--text-secondary); font-size: 1.1rem; max-width: 520px; margin: 0 auto 36px; }
+    .cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-dark {
+      background: var(--ocean-deep); color: #fff;
+      box-shadow: 0 4px 20px rgba(14,58,92,0.2);
+    }
+    .btn-dark:hover { box-shadow: 0 6px 28px rgba(14,58,92,0.35); }
+
+    /* ── FOOTER ───────────────────────────────── */
+    footer {
+      background: var(--ocean-deep); color: rgba(255,255,255,0.7);
+      padding: 48px 24px 28px;
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px; margin-bottom: 40px;
+    }
+    .footer-brand { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .footer-desc { font-size: 0.88rem; line-height: 1.7; max-width: 300px; }
+    footer h4 { color: #fff; font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; }
+    footer ul { list-style: none; }
+    footer li { margin-bottom: 8px; }
+    footer a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
+    footer a:hover { color: var(--gold-light); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px; text-align: center; font-size: 0.82rem;
+    }
+
+    /* ── MOBILE ───────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; text-align: center; }
+      .hero-text p { margin-left: auto; margin-right: auto; }
+      .hero-actions { justify-content: center; }
+      .hero-visual { margin-top: 20px; }
+      .phone-mockup { width: 240px; height: 480px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .cat-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .mobile-toggle { display: block; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: absolute; top: 64px; left: 0; right: 0;
+        background: var(--ocean-deep); padding: 20px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .hero-text h1 { font-size: 2.2rem; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .cat-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { grid-template-columns: 1fr; }
+      .section-header h2 { font-size: 1.7rem; }
+      .cta h2 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <div class="logo-mark">H</div>
+      HTBIZ
+    </a>
+    <button class="mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Toggle menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="#features" data-i18n="nav_features">Features</a>
+      <a href="#categories" data-i18n="nav_categories">Categories</a>
+      <a href="#how" data-i18n="nav_how">How It Works</a>
+      <div class="lang-switch">
+        <button onclick="setLang('en')" class="active" id="lang-en">EN</button>
+        <button onclick="setLang('fr')" id="lang-fr">FR</button>
+        <button onclick="setLang('ht')" id="lang-ht">HT</button>
+      </div>
+      <a href="#download" class="nav-cta" data-i18n="nav_download">Download App</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-shape hero-shape-1"></div>
+  <div class="hero-shape hero-shape-2"></div>
+  <div class="hero-shape hero-shape-3"></div>
+
+  <div class="hero-inner">
+    <div class="hero-text">
+      <h1 data-i18n="hero_title">Discover <span>Local Businesses</span> in Haiti</h1>
+      <p data-i18n="hero_desc">The first comprehensive business directory for Haiti. Find verified restaurants, hotels, shops, and services near you. Support your community, grow your business.</p>
+      <div class="hero-actions">
+        <a href="#download" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="hero_cta">Download Free</span>
+        </a>
+        <a href="#features" class="btn btn-secondary" data-i18n="hero_learn">Learn More</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="phone-mockup">
+        <div class="phone-screen">
+          <div class="phone-status"></div>
+          <div class="phone-appbar">
+            <div class="phone-appbar-title">HTBIZ</div>
+            <div class="phone-appbar-sub" data-i18n="phone_tagline">Discover Local Businesses</div>
+          </div>
+          <div class="phone-searchbar">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span data-i18n="phone_search">Search businesses...</span>
+          </div>
+          <div class="phone-chips">
+            <div class="phone-chip active">All</div>
+            <div class="phone-chip">Restaurant</div>
+            <div class="phone-chip">Hotel</div>
+            <div class="phone-chip">Shop</div>
+            <div class="phone-chip">Service</div>
+          </div>
+          <div class="phone-feed">
+            <!-- Card 1 -->
+            <div class="phone-biz-card">
+              <div class="phone-biz-img-wrap">
+                <img class="phone-biz-img" src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300&h=180&fit=crop&auto=format" alt="Lakay Restaurant" loading="lazy">
+                <div class="phone-biz-badge">Restaurant</div>
+                <div class="phone-biz-rating"><span class="star">&#9733;</span> 4.8</div>
+              </div>
+              <div class="phone-biz-info">
+                <div class="phone-biz-name">Lakay Restaurant <span class="phone-biz-verified"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+                <div class="phone-biz-addr">P&eacute;tion-Ville, Haiti</div>
+              </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="phone-biz-card">
+              <div class="phone-biz-img-wrap">
+                <img class="phone-biz-img" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300&h=180&fit=crop&auto=format" alt="Hotel Karibe" loading="lazy">
+                <div class="phone-biz-badge">Hotel</div>
+                <div class="phone-biz-rating"><span class="star">&#9733;</span> 4.5</div>
+              </div>
+              <div class="phone-biz-info">
+                <div class="phone-biz-name">Hotel Karibe <span class="phone-biz-verified"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+                <div class="phone-biz-addr">Juvenat, Port-au-Prince</div>
+              </div>
+            </div>
+          </div>
+          <!-- Bottom nav -->
+          <div class="phone-nav">
+            <div class="phone-nav-item active">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              <span>Home</span>
+            </div>
+            <div class="phone-nav-item">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>Map</span>
+            </div>
+            <div class="phone-nav-item">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              <span>Alerts</span>
+            </div>
+            <div class="phone-nav-item">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Profile</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+  <div class="stats-inner">
+    <div>
+      <div class="stat-num">500+</div>
+      <div class="stat-label" data-i18n="stat_businesses">Local Businesses</div>
+    </div>
+    <div>
+      <div class="stat-num">8</div>
+      <div class="stat-label" data-i18n="stat_categories">Categories</div>
+    </div>
+    <div>
+      <div class="stat-num">3</div>
+      <div class="stat-label" data-i18n="stat_languages">Languages</div>
+    </div>
+    <div>
+      <div class="stat-num">100%</div>
+      <div class="stat-label" data-i18n="stat_free">Free to Use</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-header">
+    <span class="section-tag" data-i18n="nav_features">Features</span>
+    <h2 data-i18n="features_title">Everything You Need to Explore Haiti</h2>
+    <p data-i18n="features_desc">A powerful directory with the tools to find, review, and connect with businesses across the country.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon fi-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <h3 data-i18n="f1_title">Interactive Map</h3>
+      <p data-i18n="f1_desc">Find businesses near you with an interactive Google Maps view. Get exact addresses and directions with a single tap.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <h3 data-i18n="f2_title">Verified Businesses</h3>
+      <p data-i18n="f2_desc">Look for the verification badge. Verified businesses have proven their legitimacy with official documentation.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-teal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <h3 data-i18n="f3_title">Reviews & Ratings</h3>
+      <p data-i18n="f3_desc">Read honest reviews from real customers. Share your own experience to help others make better choices.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <h3 data-i18n="f4_title">Smart Search</h3>
+      <p data-i18n="f4_desc">Search by name, category, or location. Filter results to find exactly what you're looking for in seconds.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <h3 data-i18n="f5_title">Business Analytics</h3>
+      <p data-i18n="f5_desc">Business owners get a full dashboard with views, reviews, and engagement metrics to grow their presence.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-teal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      </div>
+      <h3 data-i18n="f6_title">Multilingual</h3>
+      <p data-i18n="f6_desc">Available in English, French, and Haitian Creole. Use the app in the language you're most comfortable with.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="categories" id="categories">
+  <div class="section-header">
+    <span class="section-tag" data-i18n="nav_categories">Categories</span>
+    <h2 data-i18n="cat_title">Find Any Type of Business</h2>
+    <p data-i18n="cat_desc">From your favorite restaurant to essential services, HTBIZ covers every sector of Haiti's economy.</p>
+  </div>
+
+  <div class="cat-grid">
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=240&fit=crop&auto=format" alt="Restaurant" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_restaurant">Restaurants</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=240&fit=crop&auto=format" alt="Hotel" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_hotel">Hotels</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=240&fit=crop&auto=format" alt="Shop" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_shop">Shops</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=240&fit=crop&auto=format" alt="Services" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_service">Services</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=240&fit=crop&auto=format" alt="Entertainment" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_entertainment">Entertainment</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=240&fit=crop&auto=format" alt="Healthcare" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_healthcare">Healthcare</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=240&fit=crop&auto=format" alt="Education" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_education">Education</div>
+    </div>
+    <div class="cat-item">
+      <div class="cat-photo-wrap"><img class="cat-photo" src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=400&h=240&fit=crop&auto=format" alt="More" loading="lazy"></div>
+      <div class="cat-name" data-i18n="cat_more">& More</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-header">
+    <span class="section-tag" data-i18n="how_tag">How It Works</span>
+    <h2 data-i18n="how_title">Get Started in Minutes</h2>
+    <p data-i18n="how_desc">Whether you're searching for a business or listing your own, HTBIZ makes it simple.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3 data-i18n="step1_title">Download the App</h3>
+      <p data-i18n="step1_desc">Get HTBIZ for free on Android or iOS. Create your account in seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3 data-i18n="step2_title">Explore & Discover</h3>
+      <p data-i18n="step2_desc">Browse categories, search by name, or explore the map to find businesses near you.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3 data-i18n="step3_title">Connect & Review</h3>
+      <p data-i18n="step3_desc">Call, visit, or WhatsApp businesses directly. Leave reviews to help the community.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="download">
+  <h2 data-i18n="cta_title">Ready to Discover Haiti?</h2>
+  <p data-i18n="cta_desc">Download HTBIZ today and support the businesses that make Haiti thrive.</p>
+  <div class="cta-actions">
+    <a href="#" class="btn btn-dark">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.4l2.194 1.27a1 1 0 010 1.733l-2.122 1.228-2.534-2.534 2.462-2.462v.766zM5.864 2.658L16.8 8.99l-2.302 2.302-8.635-8.635z"/></svg>
+      Google Play
+    </a>
+    <a href="#" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      App Store
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">HTBIZ</div>
+      <p class="footer-desc" data-i18n="footer_desc">Haiti's premier business directory. Connecting communities with the businesses that serve them.</p>
+    </div>
+    <div>
+      <h4 data-i18n="footer_product">Product</h4>
+      <ul>
+        <li><a href="#features" data-i18n="nav_features">Features</a></li>
+        <li><a href="#categories" data-i18n="nav_categories">Categories</a></li>
+        <li><a href="#how" data-i18n="nav_how">How It Works</a></li>
+        <li><a href="#download" data-i18n="footer_download">Download</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 data-i18n="footer_business">For Business</h4>
+      <ul>
+        <li><a href="#" data-i18n="footer_list">List Your Business</a></li>
+        <li><a href="#" data-i18n="footer_verify">Get Verified</a></li>
+        <li><a href="#" data-i18n="footer_analytics">Analytics Dashboard</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 data-i18n="footer_support">Support</h4>
+      <ul>
+        <li><a href="#" data-i18n="footer_contact">Contact Us</a></li>
+        <li><a href="#" data-i18n="footer_privacy">Privacy Policy</a></li>
+        <li><a href="#" data-i18n="footer_terms">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom" data-i18n="footer_copy">&copy; 2026 HTBIZ. All rights reserved. Made with love for Haiti.</div>
+</footer>
+
+<script>
+const translations = {
+  en: {
+    nav_features: 'Features',
+    nav_categories: 'Categories',
+    nav_how: 'How It Works',
+    nav_download: 'Download App',
+    hero_title: 'Discover <span>Local Businesses</span> in Haiti',
+    hero_desc: 'The first comprehensive business directory for Haiti. Find verified restaurants, hotels, shops, and services near you. Support your community, grow your business.',
+    hero_cta: 'Download Free',
+    hero_learn: 'Learn More',
+    phone_tagline: 'Discover Local Businesses',
+    phone_search: 'Search businesses...',
+    stat_businesses: 'Local Businesses',
+    stat_categories: 'Categories',
+    stat_languages: 'Languages',
+    stat_free: 'Free to Use',
+    features_title: 'Everything You Need to Explore Haiti',
+    features_desc: 'A powerful directory with the tools to find, review, and connect with businesses across the country.',
+    f1_title: 'Interactive Map', f1_desc: 'Find businesses near you with an interactive Google Maps view. Get exact addresses and directions with a single tap.',
+    f2_title: 'Verified Businesses', f2_desc: 'Look for the verification badge. Verified businesses have proven their legitimacy with official documentation.',
+    f3_title: 'Reviews & Ratings', f3_desc: 'Read honest reviews from real customers. Share your own experience to help others make better choices.',
+    f4_title: 'Smart Search', f4_desc: 'Search by name, category, or location. Filter results to find exactly what you\'re looking for in seconds.',
+    f5_title: 'Business Analytics', f5_desc: 'Business owners get a full dashboard with views, reviews, and engagement metrics to grow their presence.',
+    f6_title: 'Multilingual', f6_desc: 'Available in English, French, and Haitian Creole. Use the app in the language you\'re most comfortable with.',
+    cat_title: 'Find Any Type of Business',
+    cat_desc: 'From your favorite restaurant to essential services, HTBIZ covers every sector of Haiti\'s economy.',
+    cat_restaurant: 'Restaurants', cat_hotel: 'Hotels', cat_shop: 'Shops', cat_service: 'Services',
+    cat_entertainment: 'Entertainment', cat_healthcare: 'Healthcare', cat_education: 'Education', cat_more: '& More',
+    how_tag: 'How It Works', how_title: 'Get Started in Minutes',
+    how_desc: 'Whether you\'re searching for a business or listing your own, HTBIZ makes it simple.',
+    step1_title: 'Download the App', step1_desc: 'Get HTBIZ for free on Android or iOS. Create your account in seconds.',
+    step2_title: 'Explore & Discover', step2_desc: 'Browse categories, search by name, or explore the map to find businesses near you.',
+    step3_title: 'Connect & Review', step3_desc: 'Call, visit, or WhatsApp businesses directly. Leave reviews to help the community.',
+    cta_title: 'Ready to Discover Haiti?',
+    cta_desc: 'Download HTBIZ today and support the businesses that make Haiti thrive.',
+    footer_desc: 'Haiti\'s premier business directory. Connecting communities with the businesses that serve them.',
+    footer_product: 'Product', footer_download: 'Download',
+    footer_business: 'For Business', footer_list: 'List Your Business', footer_verify: 'Get Verified', footer_analytics: 'Analytics Dashboard',
+    footer_support: 'Support', footer_contact: 'Contact Us', footer_privacy: 'Privacy Policy', footer_terms: 'Terms of Service',
+    footer_copy: '&copy; 2026 HTBIZ. All rights reserved. Made with love for Haiti.'
+  },
+  fr: {
+    nav_features: 'Fonctions',
+    nav_categories: 'Cat\u00e9gories',
+    nav_how: 'Comment \u00e7a marche',
+    nav_download: 'T\u00e9l\u00e9charger',
+    hero_title: 'D\u00e9couvrez les <span>entreprises locales</span> en Ha\u00efti',
+    hero_desc: 'Le premier annuaire complet des entreprises en Ha\u00efti. Trouvez des restaurants, h\u00f4tels, boutiques et services v\u00e9rifi\u00e9s pr\u00e8s de chez vous. Soutenez votre communaut\u00e9.',
+    hero_cta: 'T\u00e9l\u00e9charger',
+    hero_learn: 'En savoir plus',
+    phone_tagline: 'D\u00e9couvrez les entreprises locales',
+    phone_search: 'Rechercher...',
+    stat_businesses: 'Entreprises locales',
+    stat_categories: 'Cat\u00e9gories',
+    stat_languages: 'Langues',
+    stat_free: 'Gratuit',
+    features_title: 'Tout ce qu\'il faut pour explorer Ha\u00efti',
+    features_desc: 'Un annuaire puissant avec les outils pour trouver, \u00e9valuer et contacter des entreprises \u00e0 travers le pays.',
+    f1_title: 'Carte interactive', f1_desc: 'Trouvez des entreprises pr\u00e8s de vous avec Google Maps. Obtenez les adresses exactes et les directions en un seul clic.',
+    f2_title: 'Entreprises v\u00e9rifi\u00e9es', f2_desc: 'Recherchez le badge de v\u00e9rification. Les entreprises v\u00e9rifi\u00e9es ont prouv\u00e9 leur l\u00e9gitimit\u00e9 avec des documents officiels.',
+    f3_title: 'Avis et notes', f3_desc: 'Lisez les avis honn\u00eates de vrais clients. Partagez votre exp\u00e9rience pour aider les autres.',
+    f4_title: 'Recherche intelligente', f4_desc: 'Recherchez par nom, cat\u00e9gorie ou emplacement. Filtrez les r\u00e9sultats pour trouver exactement ce que vous cherchez.',
+    f5_title: 'Analytique', f5_desc: 'Les propri\u00e9taires d\'entreprises obtiennent un tableau de bord complet avec les vues, avis et m\u00e9triques d\'engagement.',
+    f6_title: 'Multilingue', f6_desc: 'Disponible en anglais, fran\u00e7ais et cr\u00e9ole ha\u00eftien. Utilisez l\'application dans la langue de votre choix.',
+    cat_title: 'Trouvez tout type d\'entreprise',
+    cat_desc: 'De votre restaurant pr\u00e9f\u00e9r\u00e9 aux services essentiels, HTBIZ couvre chaque secteur de l\'\u00e9conomie ha\u00eftienne.',
+    cat_restaurant: 'Restaurants', cat_hotel: 'H\u00f4tels', cat_shop: 'Boutiques', cat_service: 'Services',
+    cat_entertainment: 'Divertissement', cat_healthcare: 'Sant\u00e9', cat_education: '\u00c9ducation', cat_more: '& Plus',
+    how_tag: 'Comment \u00e7a marche', how_title: 'Commencez en quelques minutes',
+    how_desc: 'Que vous cherchiez une entreprise ou que vous inscriviez la v\u00f4tre, HTBIZ rend tout simple.',
+    step1_title: 'T\u00e9l\u00e9chargez l\'app', step1_desc: 'Obtenez HTBIZ gratuitement sur Android ou iOS. Cr\u00e9ez votre compte en quelques secondes.',
+    step2_title: 'Explorez et d\u00e9couvrez', step2_desc: 'Parcourez les cat\u00e9gories, recherchez par nom ou explorez la carte pour trouver des entreprises.',
+    step3_title: 'Contactez et \u00e9valuez', step3_desc: 'Appelez, visitez ou contactez les entreprises par WhatsApp. Laissez des avis pour aider la communaut\u00e9.',
+    cta_title: 'Pr\u00eat \u00e0 d\u00e9couvrir Ha\u00efti\u00a0?',
+    cta_desc: 'T\u00e9l\u00e9chargez HTBIZ aujourd\'hui et soutenez les entreprises qui font vivre Ha\u00efti.',
+    footer_desc: 'L\'annuaire de r\u00e9f\u00e9rence en Ha\u00efti. Connecter les communaut\u00e9s aux entreprises qui les servent.',
+    footer_product: 'Produit', footer_download: 'T\u00e9l\u00e9charger',
+    footer_business: 'Pour les entreprises', footer_list: 'Inscrire votre entreprise', footer_verify: 'Se faire v\u00e9rifier', footer_analytics: 'Tableau de bord',
+    footer_support: 'Aide', footer_contact: 'Contactez-nous', footer_privacy: 'Politique de confidentialit\u00e9', footer_terms: 'Conditions d\'utilisation',
+    footer_copy: '&copy; 2026 HTBIZ. Tous droits r\u00e9serv\u00e9s. Fait avec amour pour Ha\u00efti.'
+  },
+  ht: {
+    nav_features: 'Fonksyon',
+    nav_categories: 'Kategori',
+    nav_how: 'Kijan li mache',
+    nav_download: 'Telechaje',
+    hero_title: 'Dekouvri <span>biznis lokal</span> nan Ayiti',
+    hero_desc: 'Premye anyuwa konpl\u00e8 pou biznis nan Ayiti. Jwenn restoran, ot\u00e8l, boutik ak s\u00e8vis verifye tou pr\u00e8 ou. Sipote kominote ou, f\u00e8 biznis ou grandi.',
+    hero_cta: 'Telechaje gratis',
+    hero_learn: 'Aprann plis',
+    phone_tagline: 'Dekouvri biznis lokal',
+    phone_search: 'Chache biznis...',
+    stat_businesses: 'Biznis lokal',
+    stat_categories: 'Kategori',
+    stat_languages: 'Lang',
+    stat_free: 'Gratis',
+    features_title: 'Tout sa ou bezwen pou eksplore Ayiti',
+    features_desc: 'Yon anyuwa p\u00e8foman ak zouti pou jwenn, evalye epi konekte ak biznis nan tout peyi a.',
+    f1_title: 'Kat enteyaktif', f1_desc: 'Jwenn biznis tou pr\u00e8 ou ak Google Maps. Jwenn adr\u00e8s egzak ak direksyon nan yon s\u00e8l klik.',
+    f2_title: 'Biznis verifye', f2_desc: 'Chache badj verifikasyon an. Biznis verifye yo pwouve lejitimite yo ak dokiman ofisy\u00e8l.',
+    f3_title: 'Evalyasyon ak n\u00f2t', f3_desc: 'Li evalyasyon on\u00e8t nan men vre kliyan. Pataje eksperyans ou pou ede l\u00f2t moun f\u00e8 pi bon chwa.',
+    f4_title: 'Rechach entilijan', f4_desc: 'Chache pa non, kategori oswa anplasman. Filtre rezilta yo pou jwenn egzakteman sa ou ap chache.',
+    f5_title: 'Analitik biznis', f5_desc: 'Pwopryet\u00e8 biznis yo jwenn yon tablo konpl\u00e8 ak v\u00e8 yo, evalyasyon, ak metrik angajman.',
+    f6_title: 'Plizy\u00e8 lang', f6_desc: 'Disponib an angl\u00e8, frans\u00e8 ak krey\u00f2l ayisyen. Itilize app la nan lang ou pi alèz.',
+    cat_title: 'Jwenn nenp\u00f2t ki kalite biznis',
+    cat_desc: 'Soti nan restoran prefere ou rive nan s\u00e8vis esansy\u00e8l, HTBIZ kouvri chak sekt\u00e8 nan ekonomi Ayiti a.',
+    cat_restaurant: 'Restoran', cat_hotel: 'Ot\u00e8l', cat_shop: 'Boutik', cat_service: 'S\u00e8vis',
+    cat_entertainment: 'Div\u00e8tisman', cat_healthcare: 'Sante', cat_education: 'Edikasyon', cat_more: '& Plis ank\u00f2',
+    how_tag: 'Kijan li mache', how_title: 'Kom\u00e0nse nan k\u00e8k minit',
+    how_desc: 'Kit ou ap chache yon biznis oswa enskri pa ou, HTBIZ rann tout bagay senp.',
+    step1_title: 'Telechaje app la', step1_desc: 'Jwenn HTBIZ gratis sou Android oswa iOS. Kreye kont ou nan k\u00e8k segonn.',
+    step2_title: 'Eksplore ak dekouvri', step2_desc: 'Navige nan kategori yo, chache pa non, oswa eksplore kat la pou jwenn biznis tou pr\u00e8 ou.',
+    step3_title: 'Konekte ak evalye', step3_desc: 'Rele, vizite oswa WhatsApp biznis yo dir\u00e8kteman. Kite evalyasyon pou ede kominote a.',
+    cta_title: 'Pare pou dekouvri Ayiti?',
+    cta_desc: 'Telechaje HTBIZ jodi a epi sipote biznis ki f\u00e8 Ayiti viv.',
+    footer_desc: 'Premye anyuwa biznis Ayiti. Konekte kominote yo ak biznis ki s\u00e8vi yo.',
+    footer_product: 'Pwodwi', footer_download: 'Telechaje',
+    footer_business: 'Pou biznis', footer_list: 'Enskri biznis ou', footer_verify: 'F\u00e8 verifye', footer_analytics: 'Tablo analitik',
+    footer_support: '\u00c8d', footer_contact: 'Kontakte nou', footer_privacy: 'Politik konfidansyalite', footer_terms: 'Kondisyon s\u00e8vis',
+    footer_copy: '&copy; 2026 HTBIZ. Tout dwa rezeve. F\u00e8t ak lanmou pou Ayiti.'
+  }
+};
+
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
+  document.getElementById('lang-' + lang).classList.add('active');
+
+  const t = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.innerHTML = t[key];
+  });
+}
+
+// Close mobile menu on link click
+document.querySelectorAll('.nav-links a').forEach(link => {
+  link.addEventListener('click', () => {
+    document.querySelector('.nav-links').classList.remove('open');
+  });
+});
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feature-card, .cat-item, .step, .stat-num').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(20px)';
+  el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+  observer.observe(el);
+});
+</script>
+
+</body>
+</html>

@@ -48,12 +48,11 @@ class _OfflineBannerState extends State<OfflineBanner> {
                 key: const ValueKey('offline'),
                 width: double.infinity,
                 color: const Color(0xFFE8A838),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.cloud_off,
-                        size: 18, color: Colors.white),
+                    const Icon(Icons.cloud_off, size: 18, color: Colors.white),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(

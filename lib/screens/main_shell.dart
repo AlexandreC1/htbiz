@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/user_profile.dart';
 import '../services/business_service.dart';
+import '../services/usage_analytics_service.dart';
 import '../services/localization_service.dart';
+import '../services/push_notification_service.dart';
 import 'home/home_screen.dart';
 import 'map/map_screen.dart';
 import 'profile/profile_screen.dart';
@@ -34,6 +36,10 @@ class MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _loadUserData();
+    PushNotificationService.instance.init();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _trackTab();
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -56,10 +62,22 @@ class MainShellState extends State<MainShell> {
     final pageCount = _isBusinessOwner ? 4 : 3;
     if (index >= 0 && index < pageCount) {
       setState(() => _currentIndex = index);
+      _trackTab();
     }
   }
 
   int get tabCount => _isBusinessOwner ? 4 : 3;
+
+  void _trackTab() {
+    final names = [
+      'home',
+      'map',
+      if (_isBusinessOwner) 'owner_dashboard',
+      'profile'
+    ];
+    UsageAnalyticsService.instance
+        .screen(names[_currentIndex], MediaQuery.sizeOf(context));
+  }
 
   void refreshNotificationCount() {
     _loadNotificationCount();
@@ -77,8 +95,7 @@ class MainShellState extends State<MainShell> {
     }
   }
 
-  bool get _isBusinessOwner =>
-      _userProfile?.isBusinessOwner ?? false;
+  bool get _isBusinessOwner => _userProfile?.isBusinessOwner ?? false;
 
   List<Widget> _buildPages() {
     final pages = <Widget>[
@@ -151,7 +168,7 @@ class MainShellState extends State<MainShell> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: navigateToTab,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.primary,
@@ -159,7 +176,8 @@ class MainShellState extends State<MainShell> {
           selectedFontSize: 12,
           unselectedFontSize: 11,
           selectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+          unselectedLabelStyle:
+              GoogleFonts.poppins(fontWeight: FontWeight.w500),
           items: navItems,
         ),
       ),

@@ -12,6 +12,7 @@ dependencies:
   flutter_localizations:  
     sdk: flutter 
   app_links: ^6.3.2
+  http: ^1.5.0
 
   # Supabase
   supabase_flutter: ^2.3.4
@@ -22,6 +23,7 @@ dependencies:
   # UI
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.1
+  cupertino_icons: ^1.0.8
   
   # Images
   image_picker: ^1.0.7
@@ -36,14 +38,19 @@ dependencies:
   fl_chart: ^0.70.2
   google_maps_flutter: ^2.14.2
   flutter_dotenv: ^6.0.0
+
+  flutter_native_splash: ^2.4.0
   google_sign_in: ^7.2.0
+
+  # Push notifications
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.14.4
-  flutter_native_splash: ^2.4.0
   image: ^4.8.0
 
 flutter_launcher_icons:
@@ -51,19 +58,23 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "#00209F"
+  adaptive_icon_background: "#0E3A5C"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  # The artwork already has its own padding; the default 16% would shrink it.
+  adaptive_icon_foreground_inset: 8
 
+# The splash shows the transparent monogram on the brand colour, so it lines
+# up with the in-app splash (lib/screens/splash_screen.dart) that follows it.
 flutter_native_splash:
   color: "#0E3A5C"
-  image: assets/icon/app_icon.png
   color_dark: "#0E3A5C"
-  image_dark: assets/icon/app_icon.png
+  image: "assets/icon/app_icon_foreground.png"
   android_12:
     color: "#0E3A5C"
-    image: assets/icon/app_icon_foreground.png
     color_dark: "#0E3A5C"
-    image_dark: assets/icon/app_icon_foreground.png
+    image: "assets/icon/app_icon_foreground.png"
+  ios: true
+  web: true
 
 flutter:
   uses-material-design: true

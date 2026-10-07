@@ -40,8 +40,11 @@ class AppToast {
     if (!_active.contains(entry)) return;
     entry.dismissing.value = true;
     Future.delayed(const Duration(milliseconds: 250), () {
-      entry.overlayEntry?.remove();
       _active.remove(entry);
+      final overlayEntry = entry.overlayEntry;
+      entry.overlayEntry = null;
+      if (overlayEntry != null && overlayEntry.mounted) overlayEntry.remove();
+      entry.dismissing.dispose();
     });
   }
 }

@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <queries>
     <intent>
@@ -44,10 +45,11 @@
                 <data android:scheme="io.supabase.htbiz" />
             </intent-filter>
         </activity>
-        <!-- Google Maps API Key -->
+        <!-- Injected by android/app/build.gradle.kts from local.properties
+             (GOOGLE_MAPS_API_KEY) so the key is not committed. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCK87tNBQvIf_u3suPF2U5Tdh7eXLsvORA"/>
+            android:value="${googleMapsApiKey}"/>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
