@@ -39,10 +39,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void initState() {
     super.initState();
     _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
-        if (data.event == AuthChangeEvent.signedIn &&
-            _awaitingEmailConfirmation &&
-            mounted) {
-          _continueToApp();
+      if (data.event == AuthChangeEvent.signedIn &&
+          _awaitingEmailConfirmation &&
+          mounted) {
+        _continueToApp();
       }
     });
   }

@@ -67,7 +67,8 @@ class _SplashScreenState extends State<SplashScreen> {
             // Roughly matches the native splash shown just before this one.
             Image.asset(
               'assets/icon/app_icon.png',
-              width: (MediaQuery.sizeOf(context).width * 0.6).clamp(160.0, 280.0),
+              width:
+                  (MediaQuery.sizeOf(context).width * 0.6).clamp(160.0, 280.0),
             ),
             const SizedBox(height: 24),
             Text(

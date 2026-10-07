@@ -71,8 +71,7 @@ class _HTBizLogoPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-            left + stem + gap, barTop, boxW - 2 * (stem + gap), bar),
+        Rect.fromLTWH(left + stem + gap, barTop, boxW - 2 * (stem + gap), bar),
         corner,
       ),
       paint,

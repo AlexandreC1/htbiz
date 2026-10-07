@@ -54,7 +54,8 @@ class LocalizationService extends ChangeNotifier {
       'usage_retention': 'Keep usage data for',
       'usage_days': 'days',
       'review_sign_in_title': 'Sign in to leave a review',
-      'review_sign_in_message': 'Create an account or sign in to rate and review this business.',
+      'review_sign_in_message':
+          'Create an account or sign in to rate and review this business.',
       'usage_delete': 'Stop sharing and delete my usage data',
       'usage_deleted': 'Your usage data were deleted.',
       'usage_failed':
@@ -348,7 +349,8 @@ class LocalizationService extends ChangeNotifier {
       'usage_retention': 'Conserver les données pendant',
       'usage_days': 'jours',
       'review_sign_in_title': 'Connectez-vous pour donner un avis',
-      'review_sign_in_message': 'Créez un compte ou connectez-vous pour noter cette entreprise.',
+      'review_sign_in_message':
+          'Créez un compte ou connectez-vous pour noter cette entreprise.',
       'usage_delete': 'Arrêter le partage et supprimer mes données',
       'usage_deleted': 'Vos données d’utilisation ont été supprimées.',
       'usage_failed':
@@ -650,7 +652,8 @@ class LocalizationService extends ChangeNotifier {
       'usage_retention': 'Kenbe done yo pandan',
       'usage_days': 'jou',
       'review_sign_in_title': 'Konekte pou kite yon avi',
-      'review_sign_in_message': 'Kreye yon kont oswa konekte pou bay biznis sa a nòt ak avi.',
+      'review_sign_in_message':
+          'Kreye yon kont oswa konekte pou bay biznis sa a nòt ak avi.',
       'usage_delete': 'Sispann pataje epi efase done mwen',
       'usage_deleted': 'Done itilizasyon ou yo efase.',
       'usage_failed':

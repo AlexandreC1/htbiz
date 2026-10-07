@@ -472,8 +472,8 @@ class _LoginScreenState extends State<LoginScreen>
                               height: 52,
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _signInAsGuest,
-                                child: Text(
-                                    localization.t('continue_as_guest')),
+                                child:
+                                    Text(localization.t('continue_as_guest')),
                               ),
                             ),
 
