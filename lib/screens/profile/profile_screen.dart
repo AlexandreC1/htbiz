@@ -9,7 +9,7 @@ import '../../models/user_profile.dart';
 import '../../services/business_service.dart';
 import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
-import '../../services/push_notification_service.dart';
+import '../../services/session_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
 import 'usage_settings_screen.dart';
@@ -305,8 +305,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: OutlinedButton.icon(
                     onPressed: () async {
-                      await PushNotificationService.instance.deleteToken();
-                      await supabase.auth.signOut();
+                      await signOutAndClearLocalData();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
                           FadeSlideRoute(page: const LoginScreen()),

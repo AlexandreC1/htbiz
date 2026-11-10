@@ -11,7 +11,7 @@ import '../../utils/business_statistics.dart';
 import '../../services/business_service.dart';
 import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
-import '../../services/push_notification_service.dart';
+import '../../services/session_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
 import 'add_business_screen.dart';
@@ -215,8 +215,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 }
               } else if (value == 'logout') {
                 final navigator = Navigator.of(context);
-                await PushNotificationService.instance.deleteToken();
-                await supabase.auth.signOut();
+                await signOutAndClearLocalData();
                 if (mounted) {
                   navigator.pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
