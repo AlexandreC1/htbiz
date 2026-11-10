@@ -343,6 +343,37 @@ class LocalizationService extends ChangeNotifier {
       'confirm': 'Confirm',
       'guest': 'Guest',
       'sign_out': 'Sign Out',
+
+      // Account deletion and terms acceptance
+      'delete_account': 'Delete my account',
+      'delete_account_title': 'Delete your account?',
+      'delete_account_intro': 'This permanently deletes:',
+      'delete_account_item_profile': 'Your profile and your sign-in',
+      'delete_account_item_reviews':
+          'Your reviews, your likes and the photos you uploaded',
+      'delete_account_item_favorites':
+          'Your favorites, check-ins and notifications',
+      'delete_account_item_businesses':
+          'The businesses you own, with their photos and every review they received',
+      'delete_account_irreversible': 'This cannot be undone.',
+      'delete_account_type_to_confirm': 'Type {word} to confirm.',
+      'delete_account_confirm_word': 'DELETE',
+      'delete_account_confirm_button': 'Delete permanently',
+      'delete_account_in_progress': 'Deleting your account...',
+      'delete_account_success': 'Your account has been deleted.',
+      'delete_account_failed':
+          'We could not delete your account. It is still active. Please try again.',
+      'delete_account_offline':
+          'Could not reach HTBiz. Your account was not deleted. Check your connection and try again.',
+      'terms_agree':
+          'I agree to the {terms} and {guidelines} and have read the {privacy}.',
+      'google_terms_notice':
+          'By continuing with Google, you agree to the {terms} and {guidelines} and confirm you have read the {privacy}.',
+      'terms_of_use': 'Terms of Use',
+      'community_guidelines': 'Community Guidelines',
+      'privacy_policy': 'Privacy Policy',
+      'terms_required': 'Please accept the terms to create an account.',
+      'link_open_failed': 'Could not open the link.',
     },
     'fr': {
       'usage_users': 'Utilisateurs actifs',
@@ -656,6 +687,39 @@ class LocalizationService extends ChangeNotifier {
           'Un nouveau lien de confirmation vous a \u00e9t\u00e9 envoy\u00e9.',
       'use_different_email': 'Utiliser une autre adresse email',
       'sign_out': 'Se d\u00e9connecter',
+
+      // Account deletion and terms acceptance
+      'delete_account': 'Supprimer mon compte',
+      'delete_account_title': 'Supprimer votre compte ?',
+      'delete_account_intro': 'Cette action supprime définitivement :',
+      'delete_account_item_profile':
+          'Votre profil et votre identifiant de connexion',
+      'delete_account_item_reviews':
+          'Vos avis, vos mentions J’aime et les photos que vous avez envoyées',
+      'delete_account_item_favorites':
+          'Vos favoris, vos visites et vos notifications',
+      'delete_account_item_businesses':
+          'Les entreprises dont vous êtes propriétaire, avec leurs photos et tous les avis qu’elles ont reçus',
+      'delete_account_irreversible': 'Cette action est irréversible.',
+      'delete_account_type_to_confirm': 'Tapez {word} pour confirmer.',
+      'delete_account_confirm_word': 'SUPPRIMER',
+      'delete_account_confirm_button': 'Supprimer définitivement',
+      'delete_account_in_progress': 'Suppression du compte...',
+      'delete_account_success': 'Votre compte a été supprimé.',
+      'delete_account_failed':
+          'Nous n’avons pas pu supprimer votre compte. Il est toujours actif. Veuillez réessayer.',
+      'delete_account_offline':
+          'Impossible de joindre HTBiz. Votre compte n’a pas été supprimé. Vérifiez votre connexion et réessayez.',
+      'terms_agree':
+          'J’accepte les {terms} et les {guidelines} et j’ai lu la {privacy}.',
+      'google_terms_notice':
+          'En continuant avec Google, vous acceptez les {terms} et les {guidelines} et confirmez avoir lu la {privacy}.',
+      'terms_of_use': 'Conditions d’utilisation',
+      'community_guidelines': 'Règles de la communauté',
+      'privacy_policy': 'Politique de confidentialité',
+      'terms_required':
+          'Veuillez accepter les conditions pour créer un compte.',
+      'link_open_failed': 'Impossible d’ouvrir le lien.',
     },
     'ht': {
       'usage_users': 'Itilizatè aktif',
@@ -957,6 +1021,37 @@ class LocalizationService extends ChangeNotifier {
           'Ou gen 10 biznis ki poko verifye. Fè verifye youn anvan ou ajoute lòt.',
       'error_like_limit':
           'Ou rive nan limit renmen pou jounen an. Eseye ankò pita.',
+
+      // Account deletion and terms acceptance
+      'delete_account': 'Efase kont mwen',
+      'delete_account_title': 'Efase kont ou?',
+      'delete_account_intro': 'Sa ap efase nèt:',
+      'delete_account_item_profile': 'Pwofil ou ak koneksyon ou',
+      'delete_account_item_reviews':
+          'Reviw ou yo, renmen ou yo ak foto ou te voye yo',
+      'delete_account_item_favorites':
+          'Favori ou yo, vizit ou yo ak notifikasyon ou yo',
+      'delete_account_item_businesses':
+          'Biznis ki pou ou yo, ak foto yo ansanm ak tout reviw yo te resevwa',
+      'delete_account_irreversible': 'Ou p ap ka defèt sa.',
+      'delete_account_type_to_confirm': 'Tape {word} pou konfime.',
+      'delete_account_confirm_word': 'EFASE',
+      'delete_account_confirm_button': 'Efase nèt',
+      'delete_account_in_progress': 'N ap efase kont ou...',
+      'delete_account_success': 'Kont ou efase.',
+      'delete_account_failed':
+          'Nou pa rive efase kont ou. Li toujou aktif. Tanpri eseye ankò.',
+      'delete_account_offline':
+          'Nou pa ka jwenn HTBiz. Kont ou pa efase. Tcheke koneksyon ou epi eseye ankò.',
+      'terms_agree':
+          'Mwen dakò ak {terms} ak {guidelines} epi mwen li {privacy}.',
+      'google_terms_notice':
+          'Lè ou kontinye ak Google, ou dakò ak {terms} ak {guidelines} epi ou konfime ou li {privacy}.',
+      'terms_of_use': 'Kondisyon itilizasyon yo',
+      'community_guidelines': 'Règ kominote a',
+      'privacy_policy': 'Politik konfidansyalite a',
+      'terms_required': 'Tanpri aksepte kondisyon yo pou kreye yon kont.',
+      'link_open_failed': 'Nou pa ka louvri lyen an.',
     },
   };
 }

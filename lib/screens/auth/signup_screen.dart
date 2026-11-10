@@ -9,6 +9,7 @@ import '../../main.dart';
 import '../../services/app_exception.dart';
 import '../../services/google_auth_service.dart';
 import '../../widgets/app_toast.dart';
+import '../../widgets/legal_consent.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../main_shell.dart';
@@ -33,6 +34,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscureConfirmPassword = true;
   bool _awaitingEmailConfirmation = false;
   bool _isResendingConfirmation = false;
+  bool _acceptedTerms = false;
+  bool _showTermsError = false;
   StreamSubscription<AuthState>? _authSubscription;
 
   @override
@@ -56,7 +59,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  void _setAcceptedTerms(bool value) {
+    setState(() => _acceptedTerms = value);
+  }
+
   Future<void> _signUpWithGoogle() async {
+    // Google creates the account too, so the same acceptance is required.
+    if (!_acceptedTerms) {
+      setState(() => _showTermsError = true);
+      return;
+    }
+
     setState(() => _isGoogleLoading = true);
 
     try {
@@ -114,7 +127,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formValid = _formKey.currentState!.validate();
+    if (!_acceptedTerms) setState(() => _showTermsError = true);
+    if (!formValid || !_acceptedTerms) return;
 
     setState(() => _isLoading = true);
 
@@ -357,7 +372,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         },
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
+
+                      // Terms acceptance
+                      LegalConsentCheckbox(
+                        value: _acceptedTerms,
+                        showError: _showTermsError,
+                        onChanged: _setAcceptedTerms,
+                      ),
+
+                      const SizedBox(height: 24),
 
                       // Sign up button
                       AnimatedSwitcher(

@@ -119,6 +119,14 @@ run_sql "Review integrity and abuse limits idempotency" \
         "$ROOT/supabase/migrations/20261110000000_review_integrity_and_limits.sql"
 run_sql "Review integrity and abuse limit assertions" \
         "$HERE/08_review_integrity_assertion.sql"
+run_sql "Tables without cascading account keys seed" \
+        "$HERE/09_account_deletion_seed.sql"
+run_sql "Account deletion cascades" \
+        "$ROOT/supabase/migrations/20261111000000_account_deletion.sql"
+run_sql "Account deletion cascades idempotency" \
+        "$ROOT/supabase/migrations/20261111000000_account_deletion.sql"
+run_sql "Account deletion assertions" \
+        "$HERE/09_account_deletion_assertion.sql"
 
 echo
 echo "==> All migrations applied and all assertions passed."

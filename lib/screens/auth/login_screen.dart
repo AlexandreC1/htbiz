@@ -10,6 +10,7 @@ import '../../services/app_exception.dart';
 import '../../services/google_auth_service.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/htbiz_logo.dart';
+import '../../widgets/legal_consent.dart';
 import '../../services/business_service.dart';
 import '../../services/localization_service.dart';
 import '../business/owner_dashboard_screen.dart';
@@ -463,6 +464,13 @@ class _LoginScreenState extends State<LoginScreen>
                                 side: BorderSide(color: Colors.grey.shade300),
                               ),
                             ),
+                          ),
+
+                          const SizedBox(height: 8),
+                          const LegalConsentText(
+                            templateKey: 'google_terms_notice',
+                            textAlign: TextAlign.center,
+                            fontSize: 12,
                           ),
 
                           const SizedBox(height: 12),

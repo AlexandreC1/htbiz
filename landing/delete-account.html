@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTBIZ - Supprimer votre compte / Delete your account</title>
+  <meta name="description" content="Comment supprimer votre compte HTBIZ et les données associées. How to delete your HTBIZ account and the data that belongs to it.">
+  <meta name="theme-color" content="#0E3A5C">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ocean-deep: #0E3A5C;
+      --ocean-mid: #1B4F72;
+      --teal: #0E8A7E;
+      --gold: #E8A838;
+      --gold-light: #F6C65B;
+      --surface: #FAF8F5;
+      --text-primary: #1C2833;
+      --text-secondary: #6C7A89;
+      --card: #FFFFFF;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      background: var(--surface);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14, 58, 92, 0.96);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; gap: 16px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.4rem; font-weight: 700; color: #fff;
+      text-decoration: none;
+    }
+    .nav-brand .logo-mark {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.1rem; color: var(--ocean-deep);
+    }
+    .lang-jump { display: flex; gap: 6px; }
+    .lang-jump a {
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      font-size: 0.85rem; font-weight: 600;
+      padding: 6px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.2s, color 0.2s;
+    }
+    .lang-jump a:hover, .lang-jump a:focus-visible { background: rgba(255,255,255,0.12); color: #fff; }
+
+    /* HEADER */
+    .page-head {
+      background: linear-gradient(155deg, var(--ocean-deep) 0%, var(--ocean-mid) 45%, var(--teal) 100%);
+      color: #fff; padding: 64px 24px 56px; text-align: center;
+    }
+    .page-head h1 { font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 10px; }
+    .page-head p { color: rgba(255,255,255,0.8); font-size: 1rem; max-width: 620px; margin: 0 auto; }
+
+    /* CONTENT */
+    main { max-width: 820px; margin: 0 auto; padding: 40px 24px 72px; }
+    .lang-section { scroll-margin-top: 84px; }
+    .lang-section + .lang-section { margin-top: 56px; padding-top: 48px; border-top: 1px solid #E8E4DF; }
+    .lang-tag {
+      display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--ocean-deep); background: var(--gold-light);
+      padding: 4px 10px; border-radius: 6px; margin-bottom: 12px;
+    }
+    h2 { font-size: 1.6rem; font-weight: 700; color: var(--ocean-deep); margin-bottom: 8px; }
+    .lead { color: var(--text-secondary); margin-bottom: 24px; }
+    .card {
+      background: var(--card); border-radius: 16px; padding: 24px 26px;
+      box-shadow: 0 2px 16px rgba(14,58,92,0.06); margin-bottom: 18px;
+    }
+    .card h3 { font-size: 1.05rem; font-weight: 600; color: var(--ocean-mid); margin-bottom: 10px; }
+    .card p { font-size: 0.95rem; margin-bottom: 10px; }
+    .card p:last-child { margin-bottom: 0; }
+    .card ol, .card ul { padding-left: 22px; font-size: 0.95rem; }
+    .card li { margin-bottom: 6px; }
+    .card li:last-child { margin-bottom: 0; }
+    .warn { border-left: 4px solid var(--gold); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--ocean-deep); color: #fff; text-decoration: none;
+      font-weight: 600; font-size: 0.95rem;
+      padding: 12px 22px; border-radius: 12px; margin: 6px 0 10px;
+      box-shadow: 0 4px 20px rgba(14,58,92,0.2);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .btn:hover, .btn:focus-visible { box-shadow: 0 6px 28px rgba(14,58,92,0.35); transform: translateY(-1px); }
+    main a:not(.btn) { color: var(--teal); font-weight: 500; }
+    .small { font-size: 0.85rem; color: var(--text-secondary); }
+
+    /* FOOTER */
+    footer {
+      background: var(--ocean-deep); color: rgba(255,255,255,0.7);
+      padding: 28px 24px; text-align: center; font-size: 0.85rem;
+    }
+    footer a { color: rgba(255,255,255,0.75); text-decoration: none; margin: 0 10px; transition: color 0.2s; }
+    footer a:hover { color: var(--gold-light); }
+    .footer-links { margin-bottom: 12px; }
+
+    @media (max-width: 600px) {
+      .page-head { padding: 44px 20px 40px; }
+      .page-head h1 { font-size: 1.6rem; }
+      h2 { font-size: 1.35rem; }
+      .card { padding: 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <div class="logo-mark">H</div>
+      HTBIZ
+    </a>
+    <div class="lang-jump">
+      <a href="#fr" lang="fr" hreflang="fr">Français</a>
+      <a href="#en" lang="en" hreflang="en">English</a>
+    </div>
+  </div>
+</nav>
+
+<header class="page-head">
+  <h1>Supprimer votre compte HTBIZ<br><span lang="en">Delete your HTBIZ account</span></h1>
+  <p>Application HTBIZ, l'annuaire des entreprises en Haïti. <span lang="en">HTBIZ app, the business directory for Haiti.</span></p>
+</header>
+
+<main>
+
+  <!-- ===================== FRANÇAIS ===================== -->
+  <section class="lang-section" id="fr" lang="fr">
+    <span class="lang-tag">FRANÇAIS</span>
+    <h2>Supprimer votre compte et vos données</h2>
+    <p class="lead">Vous pouvez supprimer votre compte HTBIZ à tout moment, depuis l'application ou sans l'application. La suppression est définitive.</p>
+
+    <div class="card">
+      <h3>Depuis l'application</h3>
+      <ol>
+        <li>Ouvrez HTBIZ et connectez-vous.</li>
+        <li>Allez dans l'onglet <strong>Profil</strong>.</li>
+        <li>Touchez <strong>Supprimer mon compte</strong>, sous le bouton de déconnexion.</li>
+        <li>Lisez ce qui sera supprimé, tapez le mot <strong>SUPPRIMER</strong>, puis touchez <strong>Supprimer définitivement</strong>.</li>
+      </ol>
+      <p class="small">Le compte et ses données sont supprimés immédiatement.</p>
+    </div>
+
+    <div class="card">
+      <h3>Sans l'application</h3>
+      <p>Envoyez-nous une demande par courriel, depuis l'adresse associée à votre compte HTBIZ :</p>
+      <a class="btn" href="mailto:charlesalexandrenick@gmail.com?subject=Demande%20de%20suppression%20de%20compte%20HTBIZ&amp;body=Bonjour%2C%0A%0AJe%20demande%20la%20suppression%20de%20mon%20compte%20HTBIZ%20et%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AAdresse%20courriel%20du%20compte%20%3A%20%0A%0AMerci.">Demander la suppression par courriel</a>
+      <p>Ou écrivez à <a href="mailto:charlesalexandrenick@gmail.com?subject=Demande%20de%20suppression%20de%20compte%20HTBIZ">charlesalexandrenick@gmail.com</a> avec l'objet « Demande de suppression de compte HTBIZ » et l'adresse courriel de votre compte.</p>
+      <p>Nous pouvons vous demander de confirmer que le compte vous appartient. Les demandes sont traitées dans un délai de 30 jours.</p>
+    </div>
+
+    <div class="card">
+      <h3>Données supprimées</h3>
+      <ul>
+        <li>Votre profil (nom, adresse courriel, photo) et votre identifiant de connexion.</li>
+        <li>Vos avis, vos mentions J'aime et les photos que vous avez envoyées.</li>
+        <li>Vos favoris, vos visites, vos notifications et les jetons de notification de vos appareils.</li>
+        <li>Vos préférences et vos données de statistiques d'utilisation.</li>
+        <li>Les entreprises dont vous êtes propriétaire, avec leurs photos, leurs documents de vérification et tous les avis qu'elles ont reçus, y compris ceux écrits par d'autres personnes.</li>
+      </ul>
+    </div>
+
+    <div class="card warn">
+      <h3>Données pouvant être conservées</h3>
+      <!-- OWNER: À CONFIRMER. Vérifier la durée réelle de conservation des sauvegardes de la base de données (30 jours ci-dessous) et que rien d'autre n'est conservé, avant publication. -->
+      <p>Des copies peuvent subsister dans les sauvegardes de la base de données. Ces sauvegardes sont remplacées dans un délai de 30 jours.</p>
+      <p>Aucune autre donnée de votre compte n'est conservée après la suppression.</p>
+    </div>
+  </section>
+
+  <!-- ===================== ENGLISH ===================== -->
+  <section class="lang-section" id="en" lang="en">
+    <span class="lang-tag">ENGLISH</span>
+    <h2>Delete your account and your data</h2>
+    <p class="lead">You can delete your HTBIZ account at any time, in the app or without the app. Deletion is permanent.</p>
+
+    <div class="card">
+      <h3>In the app</h3>
+      <ol>
+        <li>Open HTBIZ and sign in.</li>
+        <li>Go to the <strong>Profile</strong> tab.</li>
+        <li>Tap <strong>Delete my account</strong>, below the logout button.</li>
+        <li>Read what will be deleted, type the word <strong>DELETE</strong>, then tap <strong>Delete permanently</strong>.</li>
+      </ol>
+      <p class="small">The account and its data are deleted immediately.</p>
+    </div>
+
+    <div class="card">
+      <h3>Without the app</h3>
+      <p>Send us a request by email, from the address of your HTBIZ account:</p>
+      <a class="btn" href="mailto:charlesalexandrenick@gmail.com?subject=HTBIZ%20account%20deletion%20request&amp;body=Hello%2C%0A%0APlease%20delete%20my%20HTBIZ%20account%20and%20the%20data%20that%20belongs%20to%20it.%0A%0AAccount%20email%20address%3A%20%0A%0AThank%20you.">Request deletion by email</a>
+      <p>Or write to <a href="mailto:charlesalexandrenick@gmail.com?subject=HTBIZ%20account%20deletion%20request">charlesalexandrenick@gmail.com</a> with the subject "HTBIZ account deletion request" and the email address of your account.</p>
+      <p>We may ask you to confirm that the account is yours. Requests are completed within 30 days.</p>
+    </div>
+
+    <div class="card">
+      <h3>What is deleted</h3>
+      <ul>
+        <li>Your profile (name, email address, photo) and your sign-in.</li>
+        <li>Your reviews, your likes and the photos you uploaded.</li>
+        <li>Your favorites, check-ins, notifications and the push notification tokens of your devices.</li>
+        <li>Your preferences and your usage statistics data.</li>
+        <li>The businesses you own, with their photos, their verification documents and every review they received, including reviews written by other people.</li>
+      </ul>
+    </div>
+
+    <div class="card warn">
+      <h3>What may be retained</h3>
+      <!-- OWNER: TO CONFIRM. Check the real retention period of the database backups (30 days below) and that nothing else is kept, before publishing. -->
+      <p>Copies may remain in database backups. Backups roll off within 30 days.</p>
+      <p>No other data from your account is kept after deletion.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="index.html">HTBIZ</a>
+    <a href="privacy.html">Politique de confidentialité / Privacy Policy</a>
+    <a href="terms.html">Conditions d'utilisation / Terms of Service</a>
+  </div>
+  <div>&copy; 2026 HTBIZ</div>
+</footer>
+
+</body>
+</html>
