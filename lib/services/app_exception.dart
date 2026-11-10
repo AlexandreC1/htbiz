@@ -6,6 +6,18 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'localization_service.dart';
+
+/// SQLSTATEs raised by the abuse limits in the database, mapped to the
+/// localization key of the message shown to the user.
+const Map<String, String> _limitMessageKeys = {
+  'HT001': 'error_self_review',
+  'HT002': 'error_review_limit',
+  'HT003': 'error_business_daily_limit',
+  'HT004': 'error_business_unverified_limit',
+  'HT005': 'error_like_limit',
+};
+
 /// What went wrong, in terms the UI can branch on.
 enum AppErrorKind {
   /// No usable connection, DNS failure, or the request exceeded its deadline.
@@ -148,6 +160,15 @@ class AppException implements Exception {
 
     if (error is PostgrestException) {
       final code = error.code ?? '';
+      final limitKey = _limitMessageKeys[code];
+      if (limitKey != null) {
+        return AppException(
+          AppErrorKind.forbidden,
+          LocalizationService().t(limitKey),
+          cause: error,
+          code: code,
+        );
+      }
       switch (code) {
         case '23505': // unique_violation
           return AppException(

@@ -314,6 +314,15 @@ class LocalizationService extends ChangeNotifier {
       'business_not_found': 'Business not found',
       'loading_map': 'Loading map...',
       'google_sign_in_failed': 'Google sign-in failed',
+      'error_self_review': 'You cannot review your own business.',
+      'error_review_limit':
+          'You have reached the daily review limit. Please try again later.',
+      'error_business_daily_limit':
+          'You can add up to 3 businesses per day. Please try again later.',
+      'error_business_unverified_limit':
+          'You have 10 unverified businesses. Get one verified before adding more.',
+      'error_like_limit':
+          'You have reached the daily like limit. Please try again later.',
 
       // Navigation & Profile
       'home': 'Home',
@@ -608,6 +617,16 @@ class LocalizationService extends ChangeNotifier {
       'business_not_found': 'Entreprise non trouvée',
       'loading_map': 'Chargement de la carte...',
       'google_sign_in_failed': 'Échec de la connexion Google',
+      'error_self_review':
+          'Vous ne pouvez pas évaluer votre propre entreprise.',
+      'error_review_limit':
+          'Vous avez atteint la limite quotidienne d\'avis. Réessayez plus tard.',
+      'error_business_daily_limit':
+          'Vous pouvez ajouter 3 entreprises par jour. Réessayez plus tard.',
+      'error_business_unverified_limit':
+          'Vous avez 10 entreprises non vérifiées. Faites-en vérifier une avant d\'en ajouter.',
+      'error_like_limit':
+          'Vous avez atteint la limite quotidienne de mentions J\'aime. Réessayez plus tard.',
 
       // Navigation & Profile
       'home': 'Accueil',
@@ -929,6 +948,15 @@ class LocalizationService extends ChangeNotifier {
       'business_not_found': 'Nou pa jwenn biznis la',
       'loading_map': 'Kat la ap chaje...',
       'google_sign_in_failed': 'Koneksyon ak Google pa mache',
+      'error_self_review': 'Ou pa ka bay pwòp biznis ou yon reviw.',
+      'error_review_limit':
+          'Ou rive nan limit reviw pou jounen an. Eseye ankò pita.',
+      'error_business_daily_limit':
+          'Ou ka ajoute 3 biznis pa jou. Eseye ankò pita.',
+      'error_business_unverified_limit':
+          'Ou gen 10 biznis ki poko verifye. Fè verifye youn anvan ou ajoute lòt.',
+      'error_like_limit':
+          'Ou rive nan limit renmen pou jounen an. Eseye ankò pita.',
     },
   };
 }

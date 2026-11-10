@@ -112,6 +112,13 @@ run_sql "Dropping legacy dashboard policies" \
 run_sql "Dropping legacy dashboard policies idempotency" \
         "$ROOT/supabase/migrations/20261006030000_drop_legacy_dashboard_policies.sql"
 run_sql "Legacy policy assertions" "$HERE/06_legacy_policies_assertion.sql"
+run_sql "Orphaned and duplicate review seed" "$HERE/08_review_integrity_seed.sql"
+run_sql "Review integrity and abuse limits" \
+        "$ROOT/supabase/migrations/20261110000000_review_integrity_and_limits.sql"
+run_sql "Review integrity and abuse limits idempotency" \
+        "$ROOT/supabase/migrations/20261110000000_review_integrity_and_limits.sql"
+run_sql "Review integrity and abuse limit assertions" \
+        "$HERE/08_review_integrity_assertion.sql"
 
 echo
 echo "==> All migrations applied and all assertions passed."
