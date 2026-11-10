@@ -6,12 +6,14 @@ import 'package:provider/provider.dart';
 import '../../main.dart';
 import '../../widgets/app_toast.dart';
 import '../../models/user_profile.dart';
+import '../../services/account_service.dart';
 import '../../services/business_service.dart';
 import '../../services/app_exception.dart';
 import '../../services/localization_service.dart';
 import '../../services/push_notification_service.dart';
 import '../auth/login_screen.dart';
 import '../main_shell.dart';
+import 'delete_account_dialog.dart';
 import 'usage_settings_screen.dart';
 import '../business/usage_dashboard_screen.dart';
 
@@ -32,6 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _profileError;
   bool _isSaving = false;
   bool _isEditingName = false;
+  bool _isDeleting = false;
   File? _selectedAvatar;
 
   @override
@@ -237,11 +240,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => DeleteAccountDialog(localization: localization),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await AccountService().deleteAccount();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+        AppToast.error(context, AppException.from(e).message);
+      }
+      return;
+    }
+
+    // The account is gone and the local session is cleared. The auth
+    // listener in main.dart also routes to the login screen on sign out;
+    // doing it here as well covers the case where that event was missed.
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      FadeSlideRoute(page: const LoginScreen()),
+      (route) => false,
+    );
+    final toastContext = navigatorKey.currentContext;
+    if (toastContext != null && toastContext.mounted) {
+      AppToast.success(toastContext, localization.t('delete_account_success'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
     final localization = Provider.of<LocalizationService>(context);
     final isGuest = user?.isAnonymous ?? true;
+    final deleteLabelKey =
+        _isDeleting ? 'delete_account_in_progress' : 'delete_account';
 
     return Scaffold(
       appBar: AppBar(
@@ -325,6 +364,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+
+                // Delete account
+                if (!isGuest) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextButton.icon(
+                      onPressed: _isDeleting ? null : _deleteAccount,
+                      icon: _isDeleting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_forever_outlined),
+                      label: Text(localization.t(deleteLabelKey)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 32),
               ],
