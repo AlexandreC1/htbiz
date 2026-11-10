@@ -28,9 +28,27 @@ val mapsApiKey: String = run {
         ?: ""
 }
 
+// Release signing reads android/key.properties (gitignored, see
+// key.properties.example). Without that file (CI, fresh clones) the release
+// build falls back to the debug keystore so `flutter run --release` and
+// `flutter build appbundle` still work, but Google Play rejects that bundle.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+} else {
+    logger.warn(
+        "WARNING: android/key.properties not found. The release build is " +
+            "signed with the DEBUG key and is NOT uploadable to Google Play. " +
+            "See android/key.properties.example."
+    )
+}
+
 android {
     namespace = "com.htbiz.htbiz"
-    compileSdk = flutter.compileSdkVersion
+    // Google Play requires API 36. maxOf keeps a newer Flutter default.
+    compileSdk = maxOf(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -45,23 +63,31 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.htbiz.htbiz"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
         manifestPlaceholders["googleMapsApiKey"] = mapsApiKey
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(
+                if (hasReleaseKeystore) "release" else "debug"
+            )
         }
     }
 }

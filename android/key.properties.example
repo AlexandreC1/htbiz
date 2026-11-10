@@ -1,0 +1,14 @@
+# Copy to android/key.properties (gitignored) and fill in. Never commit the
+# real file or the keystore.
+#
+# Create the upload keystore once and keep a backup outside the repository:
+#
+#   keytool -genkeypair -v -keystore ~/htbiz-upload.jks -storetype JKS \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# storeFile is resolved relative to android/app/, so an absolute path is the
+# simplest choice.
+storeFile=/absolute/path/to/htbiz-upload.jks
+storePassword=your-keystore-password
+keyAlias=upload
+keyPassword=your-key-password
