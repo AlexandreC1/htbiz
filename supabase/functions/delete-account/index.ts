@@ -20,8 +20,9 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 //      the businesses they own and the reviews other people left on those
 //      businesses.
 
-// The exact client type createClient returns, whatever its generics are.
-type AdminClient = ReturnType<typeof createClient>;
+// The storage API of a client. Taken from createClient so that it does not
+// depend on the generic parameters of SupabaseClient.
+type StorageApi = ReturnType<typeof createClient>["storage"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +52,7 @@ const MAX_FILES = 20000;
 
 /** Every file below `folder`, following sub folders, one page at a time. */
 async function listFiles(
-  admin: AdminClient,
+  storage: StorageApi,
   bucket: string,
   folder: string,
   depth = 0,
@@ -60,7 +61,7 @@ async function listFiles(
   if (depth > MAX_DEPTH) return files;
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data, error } = await admin.storage.from(bucket).list(folder, {
+    const { data, error } = await storage.from(bucket).list(folder, {
       limit: PAGE_SIZE,
       offset,
       sortBy: { column: "name", order: "asc" },
@@ -72,7 +73,7 @@ async function listFiles(
       const path = `${folder}/${entry.name}`;
       // The storage API reports a sub folder as an entry without an id.
       if (entry.id == null) {
-        files.push(...await listFiles(admin, bucket, path, depth + 1));
+        files.push(...await listFiles(storage, bucket, path, depth + 1));
       } else {
         files.push(path);
       }
@@ -88,17 +89,17 @@ async function listFiles(
 
 /** Removes every file of the user from both buckets. Returns the count. */
 async function removeUserFiles(
-  admin: AdminClient,
+  storage: StorageApi,
   userId: string,
 ): Promise<number> {
   let removed = 0;
   for (const { bucket, folder } of userFolders(userId)) {
     // The listing is complete before anything is removed, so the offsets
     // above never skip a file because an earlier page shrank.
-    const files = await listFiles(admin, bucket, folder);
+    const files = await listFiles(storage, bucket, folder);
     for (let i = 0; i < files.length; i += PAGE_SIZE) {
       const batch = files.slice(i, i + PAGE_SIZE);
-      const { error } = await admin.storage.from(bucket).remove(batch);
+      const { error } = await storage.from(bucket).remove(batch);
       if (error) throw new Error(`remove from ${bucket}: ${error.message}`);
       removed += batch.length;
     }
@@ -142,7 +143,7 @@ serve(async (req: Request) => {
 
     let filesRemoved = 0;
     try {
-      filesRemoved = await removeUserFiles(adminClient, user.id);
+      filesRemoved = await removeUserFiles(adminClient.storage, user.id);
     } catch (err) {
       console.error("delete-account storage error", user.id, err);
       return json({
